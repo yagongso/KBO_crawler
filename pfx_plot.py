@@ -81,7 +81,6 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         obl = -1.0-1/8  # outerBottomLine
         df = df.assign(pz_std = (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
         
-    # 스트라이크, 볼만 표기 -> 서브플롯 1개
     fig, ax = plt.subplots(figsize=(4,4), dpi=80, facecolor='#898f99')
     ax.tick_params(axis='x', colors='white')
     ax.tick_params(axis='y', colors='white')
