@@ -1,0 +1,7 @@
+*.pyc
+*.txt
+pbp_data/
+__pycache__/
+.idea/
+.ipynb_checkpoints/
+venv/
