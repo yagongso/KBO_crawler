@@ -24,11 +24,11 @@ Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c',
 def set_fonts():
     if os.name == 'posix':
         fm.get_fontconfig_fonts()
-        font_location = '/Library/Fonts/NanumSquareOTFRegular.otf'
+        font_location = '/Library/Fonts/AppleGothic.ttf'
         font_name = fm.FontProperties(fname=font_location).get_name()
         rc('font', family=font_name)
     else:
-        rc('font', family='NanumSquare')
+        rc('font', family='Malgun Gothic')
 
         
 def clean_data(df):
@@ -349,7 +349,7 @@ def plot_match_calls(df, title=None):
     otl = +3.325+1/8  # outerTopLine
     obl = +1.579-1/8  # outerBottomLine
     
-    fig = plt.figure(figsize=(12,7), dpi=160, facecolor='#898f99')
+    fig = plt.figure(figsize=(12,7), dpi=100, facecolor='#898f99')
     
     if title is not None:
         st = fig.suptitle(title, fontsize=20)
@@ -859,6 +859,7 @@ def plot_szone(df, threshold=0.5, title=None, show_area=True, print_std=False):
 
 
 def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True):
+    set_fonts()
     if pitcher is not None:
         sub_df = df.loc[df.pitcher == pitcher]
     else:
@@ -895,8 +896,8 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
     if title is not None:
         st = fig.suptitle(title, fontsize=12)
         st.set_weight('bold')
-    #display(fig)
-    
+    plt.show()
+
     return fig, ax
 
 
@@ -911,6 +912,7 @@ def pitcher_info(df, pitcher=None):
     groupped['count'] = sub_df.groupby('pitch_type').count().speed
     groupped['max'] = sub_df.groupby('pitch_type').max().speed
     groupped['min'] = sub_df.groupby('pitch_type').min().speed
-    
-    #display(groupped)
+   
+    display(groupped)
     return groupped
+

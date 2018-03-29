@@ -5,7 +5,8 @@
 - [Python 3.5 이상](https://www.python.org/downloads/).
   - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천한다.
   - 필요 모듈 : `lxml`, `BeautifulSoup`, `regex`, `Numpy`, `Matplotlib`, `Pandas`, `IPython`
-  - [Anaconda](https://www.anaconda.com/download/) 설치시 위 모듈이 모두 자동으로 설치된다.
+  - [Anaconda](https://www.anaconda.com/download/) 설치시 대부분의 모듈이 모두 자동으로 설치된다.
+  - `regex`는 추가 설치가 필요한데, Anaconda 설치 후 Anaconda Navigator를 통해 설치하거나 Git Bash(아래 설명 참조), 커맨드 프롬프트 등에서 `conda install regex`를 입력하면 설치할 수 있다.
 - OS: Windows, OS X, Linux
 - 인터넷 연결 필요
 - 커맨드라인 인터페이스(CLI)에서 실행을 권장한다. 기타 환경에서 실행한 적 없음.
@@ -59,6 +60,8 @@
 그리고 다음과 같이 입력하고 엔터를 친다.
 
 `python pfx.py -d 2017 3`
+
+- `Permission Denied`라는 에러가 나면서 실행이 안된다면, Git Bash를 관리자 권한으로 실행해보자. Git Bash 아이콘에 우클릭하면 아마도 '관리자 권한으로 실행하기'라는 메뉴가 보일 것이다.
 
 2017년 3월 경기의 PBP 데이터를 다운로드하라는 뜻이다. 명령어 각각을 풀어서 설명하면 다음과 같다.
 
