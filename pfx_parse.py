@@ -445,6 +445,26 @@ class BallGame:
             else:
                 self.game_status['home_p'] = home_pit['name']
 
+
+    # 경기 종료 조건 체크
+    # 종료 조건
+    # 1. 이닝 >= 9
+    # 2. 아웃 = 3
+    # 3-1. 초 & 점수 홈>어웨이
+    # 3-2. 말 & 점수 어웨이>홈
+    def check_game_over(self):
+        # 종료 조건
+        if self.game_status['inning'] >= 9:
+            if self.game_status['outs'] == 3:
+                if self.game_status['inning_top_bot'] == 0:
+                    if self.game_status['score_home'] > self.game_status['score_away']:
+                        return True
+                else:
+                    if self.game_status['score_home'] < self.game_status['score_away']:
+                        return True
+        return False
+
+
     # 이닝 변경
     def go_to_next_inning(self):
         if self.game_status['strikes'] == 3:
@@ -1197,6 +1217,8 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         return rc
 
     if ball_game.ball_and_not_hbp is True:
+        # 연속으로 볼이 들어왔을 때
+        # 사구가 아니라면 앞선 볼 상황을 출력
         ball_game.game_status['balls'] -= 1
         ball_game.print_row()
         # ball_game.print_row_debug()
@@ -1250,6 +1272,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
     result = pitch.group().split(' ')[1]
 
     if ball_game.prev_pid != pid:
+        # 투수 교체된 경우
         # change pid
         # change throws
         ball_game.game_status['pitcher_ID'] = pid
@@ -1346,9 +1369,13 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
 
 def parse_runner(text, ball_game):
     if ball_game.ball_and_not_hbp is True:
+        # 폭투/포일로 인한 진루
+        # status에 1볼 추가된 상황
+        # '볼' row를 출력한다
         ball_game.game_status['balls'] -= 1
         ball_game.print_row()
         # ball_game.print_row_debug()
+        # 다시 게임 status에 볼 1 추가
         ball_game.game_status['balls'] += 1
     ball_game.ball_and_not_hbp = False
 
@@ -1704,8 +1731,12 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
         text_set = rl[str(k)]['textOptionList']
 
         if text_set[0]['type'] == 99:
-            game_over[0] = True
-            break
+            # 끝내기인지, 정상적 종료인지 체크해야 한다.
+            if ball_game.check_game_over() is not True:
+                ball_game.go_to_next_pa()
+                game_over[0] = True
+                break
+
         pts_set = rl[str(k)]['ptsOptionList']
         pts_dict = {}
         if len(pts_set) > 0:
