@@ -16,6 +16,7 @@ import pandas as pd
 import os
 from enum import Enum
 import numbers
+from scipy.ndimage.filters import gaussian_filter
 
 Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파울 번트헛스윙')
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
@@ -34,6 +35,7 @@ def set_fonts():
 def read_light(fname):
     import warnings
     warnings.filterwarnings("ignore")
+    # 포지션 데이터, 선수 ID 빼고 read
 
     df = pd.read_csv(fname,
                      usecols=['pitch_type', 'pitcher', 'batter', 'speed', 'pitch_result', 'pa_result',
@@ -155,7 +157,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                 color = Colors[call]
                 
                 if print_std is True:
-                    ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*20*72/fig.dpi, label=c)
+                    ax.scatter(f.px, f.pz_std, color=Colors[call], alpha=.5, s=np.pi*20*72/fig.dpi, label=call)
                     
                     if show_pitch_number is True:
                         for i in f.index:
@@ -175,7 +177,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
             color = Colors[calls]
             
             if print_std is True:
-                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*20*72/fig.dpi, label=c)
+                ax.scatter(f.px, f.pz_std, color=Colors[calls], alpha=.5, s=np.pi*20*72/fig.dpi, label=calls)
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -183,7 +185,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                             ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                     color='white', fontsize='xx-small', horizontalalignment='center')
             else:
-                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*20*72/fig.dpi, label=call)
+                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*20*72/fig.dpi, label=calls)
 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -709,7 +711,7 @@ def plot_contour_balls(df, title=None, print_std=False):
     return fig, ax
 
     
-def get_heatmap(df, threshold=0.5, print_std=False):
+def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.5):
     set_fonts()
     
     x = np.arange(-1.5, +1.5, 1/12)
@@ -767,14 +769,16 @@ def get_heatmap(df, threshold=0.5, print_std=False):
             else:
                 P[i,j] = 0
     P = P.T
+    if gaussian is True:
+        P = gaussian_filter(P, sigma)
     S = (P >= threshold)
     return P, S
 
 
-def plot_heatmap(df, title=None, print_std=False):
+def plot_heatmap(df, title=None, print_std=False, gaussian=False):
     set_fonts()
     
-    P, S = get_heatmap(df, print_std=print_std )
+    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian)
     
     lb = -1.5  # leftBorder
     rb = +1.5  # rightBorder
@@ -832,10 +836,10 @@ def plot_heatmap(df, title=None, print_std=False):
     return fig, ax
 
 
-def plot_szone(df, threshold=0.5, title=None, show_area=True, print_std=False):
+def plot_szone(df, threshold=0.5, title=None, show_area=True, print_std=False, gaussian=False):
     set_fonts()
     
-    P, S = get_heatmap(df, threshold=threshold, print_std=print_std)
+    P, S = get_heatmap(df, threshold=threshold, print_std=print_std, gaussian=gaussian)
     
     fig, ax = plt.subplots(figsize=(5,5), dpi=80, facecolor='white')
         
@@ -967,91 +971,48 @@ def count_extra_strike_balls(df, rmap, lmap, print_std=True):
     # bin 별로 스트라이크 개수/볼 개수 측정
     # (1-strike확률)*스트라이크 - (strike확률)*볼
     
-    x = np.arange(-1.5, +1.5, 1/12)
-    if print_std is True:
-        y = np.arange(-1.5, +1.5, 1/12)
-    else:
-        y = np.arange(+1.0, +4.0, 1/12)
-        
     es = 0
     eb = 0
 
     smask = (df.pitch_result == '스트라이크')
     bmask = (df.pitch_result == '볼')
-    rmask = (df.stands == '우')
-    lmask = (df.stands == '좌')
     
-    sub_df = df.loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot']]
+    sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot', 'stands']]
     if print_std is True:
         sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
     
-    rss = sub_df.loc[smask & rmask]
-    lss = sub_df.loc[smask & lmask]
-    rbs = sub_df.loc[bmask & rmask]
-    lbs = sub_df.loc[bmask & lmask]
-    
-    for i in range(len(x)):
-        # 빠른 계산을 위해 좌우 경계에서 공1개 이상(range 3개 길이) 벗어난 경우는 패스
-        if (i < 5) | (i > 31):
+    for i in range(len(sub_df)):
+        row = sub_df.iloc[i]
+
+        x = row.px
+        if not (-13 <= x*12 <= 13):
             continue
-        for j in range(len(y)):
-            # 빠른 계산을 위해 상하 중심에서 공1개 이상(평균 range 3개 길이) 벗어난 경우는 패스
-            if (j < 5) | (j > 31):
+
+        if print_std is True:
+            y = row.pz_std
+            if not (-13 <= y*12 <= 13):
                 continue
-            rs = 0
-            rb = 0
-            ls = 0
-            lb = 0
+
+            ind1 = int((x+1.5)*12)
+            ind2 = int((y+1.5)*12)
+
+        else:
+            y = row.pz
+            if not (15 <= y*12 <= 45):
+                continue
             
-            if i == 0:
-                if j == 0:
-                    if print_std is True:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        rb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
+            ind1 = int((x+1.5)*12)
+            ind2 = int((y-1)*12)
+        
+        if row.stands == '우':
+            if row.pitch_result == '스트라이크':
+                es += 1-rmap[ind2][ind1]
             else:
-                if j == 0:
-                    if print_std is True:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        rs = len(rss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        rb = len(rbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        ls = len(lss.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        lb = len(lbs.loc[(sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-            es += rs * (1-rmap[j][i])
-            es += ls * (1-lmap[j][i])
-            eb += rb * rmap[j][i]
-            eb += lb * lmap[j][i]
-            
+                eb += rmap[ind2][ind1]
+        else:
+            if row.pitch_result == '스트라이크':
+                es += 1-lmap[ind2][ind1]
+            else:
+                eb += lmap[ind2][ind1]
+                
     return es, eb

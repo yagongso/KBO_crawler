@@ -1069,6 +1069,7 @@ class BallGame:
 
 pa_pattern = regex.compile('^\p{Hangul}+ : [\p{Hangul}|0-9|\ ]+')
 pitch_pattern = regex.compile('^[0-9]+구 [0-9\ C\p{Hangul}]+')
+ibb_pattern = regex.compile('^[0-9]+구 I')
 runner_pattern = regex.compile('^[0-9]루주자 \p{Hangul}+ : [\p{Hangul}|0-9|\ ()->FD]+')
 batter_pattern = regex.compile('^(([1-9]번타자)|(대타)) \p{Hangul}+')
 src_pattern = regex.compile('[\p{Hangul}|0-9]+ \p{Hangul}+ : ')
@@ -1261,15 +1262,21 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
 
     pitch = pitch_pattern.search(text)
     if pitch is None:
-        rc = 'parse error - text : {}\n'.format(text)
-        rc += '{}회 {}:{} 타석 {}구'.format(
-            ball_game.game_status['inning'],
-            ball_game.game_status['pitcher'],
-            ball_game.game_status['batter'],
-            pitch_num
-        )
-        return rc
-    result = pitch.group().split(' ')[1]
+        if ibb_pattern.search(text) is not None:
+            pass
+        else:
+            rc = 'parse error - text : {}\n'.format(text)
+            rc += '{}회 {}:{} 타석 {}구'.format(
+                ball_game.game_status['inning'],
+                ball_game.game_status['pitcher'],
+                ball_game.game_status['batter'],
+                pitch_num
+            )
+            return rc
+    if ibb_pattern.search(text) is not None:
+        result = 'AI' # 자동 고의4구
+    else:
+        result = pitch.group().split(' ')[1]
 
     if ball_game.prev_pid != pid:
         # 투수 교체된 경우
@@ -1354,6 +1361,8 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         ball_game.get_ball()
     elif result == '12초':
         ball_game.get_ball()
+    elif result == 'AI':
+        pass
     else:
         rc = 'unexpected pitch result - text : {}\n'.format(text)
         rc += '{}회 {}:{} 타석 {}구'.format(

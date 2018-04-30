@@ -1,7 +1,10 @@
 *.pyc
 *.txt
+bb_data/
 pbp_data/
 __pycache__/
 .idea/
 .ipynb_checkpoints/
 venv/
+Untitled.ipynb
+pfx_plot.ipynb
