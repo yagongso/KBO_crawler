@@ -65,6 +65,8 @@
 
 - 윈도우에서 실행시 `bash: python: command not found`라는 에러가 난다면, 환경변수 추가가 필요하다. 윈도우 7 사용자는 [여기](http://bitboom.tistory.com/entry/Python-%EC%84%A4%EC%B9%98-%EB%B0%8F-%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98-%EC%84%A4%EC%A0%95)를, 윈도우 8 이상 사용자는 [여기](http://radiation.tistory.com/entry/%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98%EC%97%90-Python-%EC%B6%94%EA%B0%80%ED%95%98%EA%B8%B0)를 참조하여 환경변수를 설정하고 Git bash를 다시 실행해보자.
 
+- `regex` 모듈이 없다고 에러 메시지가 뜨면, `conda install regex` 또는 `pip install regex`를 쳐서 설치 후 진행한다.
+
 명령어 각각을 풀어서 설명하면 다음과 같다.
 
 - `python pfx.py` : 파이썬으로 `pfx.py`를 실행하라는 뜻이다. `pfx.py`는 PBP 데이터를 읽어오고 해석하는 파이썬 파일이다.
