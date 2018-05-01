@@ -6,6 +6,7 @@
   - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천한다. __설치 경로 이름에는 가급적 한글을 빼자__!
   - 필요 모듈 : `lxml`, `BeautifulSoup`, `regex`, `Numpy`, `Matplotlib`, `Pandas`, `IPython`
   - [Anaconda](https://www.anaconda.com/download/) 설치시 대부분의 모듈이 모두 자동으로 설치된다.
+  - [Anaconda](https://www.anaconda.com/download/)를 설치하지 않았다면 [pip](https://pypi.org/project/pip/)를 사용하면 된다. __초심자에게는 권장하지 않는다.__
   - `regex`는 추가 설치가 필요한데, Anaconda 설치 후 Anaconda Navigator를 통해 설치하거나 Git Bash(아래 설명 참조), 커맨드 프롬프트 등에서 `conda install regex` 또는 `pip install regex`를 입력하면 설치할 수 있다.
 - OS: Windows, OS X, Linux
 - 인터넷 연결 필요
@@ -52,7 +53,33 @@
 윈도우 탐색기에서 `내 문서`로 들어가도 복사된게 보인다.
 
 
-## 3. PBP 데이터 다운로드
+## 3. (윈도우) - 파이썬 실행 점검
+- 윈도우에만 해당하는 내용이며, Mac이나 Linux 환경에서 실행하는 경우 다른 방식으로 환경변수 설정을 점검하기 바란다.
+
+다음 내용으로 넘어가기 위해선 파이썬(python) 실행이 잘 되는지 점검해야 한다.
+
+Git Bash를 실행하고 다음과 같이 입력해보자.
+
+`which python`
+
+이때 `which: no python in ...`이라는 긴 내용이 출력된다면, '컴퓨터는 지금 파이썬이 어디 설치되어있는지 모르고 있다'라는 뜻이다.
+
+아니라면 다음으로 (Anaconda를 설치한 경우) `which conda`, `which pip`를 쳐보자. 이번에도 다른 메시지가 출력된다면 python/conda/pip가 설치된 경로가 정상 출력된 것이다. 아니라면 컴퓨터가 지금 `conda`, `pip`의 설치 경로를 모르는 것이다.
+
+모르면 알려줘야 한다. 해결방법은 컴퓨터의 '환경 변수'에 파이썬의 설치 경로를 추가하는 것이다.
+
+먼저 파이썬 설치 경로를 설정한다.
+
+- 윈도우 7 사용자는 [여기](http://bitboom.tistory.com/entry/Python-%EC%84%A4%EC%B9%98-%EB%B0%8F-%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98-%EC%84%A4%EC%A0%95)를 참조하여 환경변수를 설정하자.
+
+- 윈도우 8 이상 사용자는 [여기](http://radiation.tistory.com/entry/%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98%EC%97%90-Python-%EC%B6%94%EA%B0%80%ED%95%98%EA%B8%B0)를 참조하여 환경변수를 설정하자.
+
+다음으로 `conda`, `pip`의 설치 경로를 설정해야 한다. 위에서 설정한 파이썬의 설치 경로가 예를 들어 `C:\Anaconda3`인 경우, 뒤에 `\Scripts`를 붙인 변수(`C:\Anaconda3\Scripts`)를 추가 설정한다. 방법은 파이썬 설치 경로 설정하는 것과 같다.
+
+설정을 마쳤다면 git bash를 다시 실행하고 `which python`, `which conda`, `which pip`를 쳐보자. 설정한 경로 이름이 출력된다면 성공이다.
+
+
+## 4. PBP 데이터 다운로드
 
 다시 Git Bash로 돌아가 방금 경로로 들어간다. Git Bash를 껐다가 다시 실행했다면, `cd Documents/KBO_crawler`를 치고 엔터를 누르면 된다.
 - git 사용법에 능숙해 다른 경로에 다운로드를 받았다면 해당 경로로 들어가도록 하자.
@@ -62,8 +89,6 @@
 `python pfx.py -d 2017 3`
 
 - `Permission Denied`라는 에러가 나면서 실행이 안된다면, Git Bash를 관리자 권한으로 실행해보자. Git Bash 아이콘에 우클릭하면 아마도 '관리자 권한으로 실행하기'라는 메뉴가 보일 것이다.
-
-- 윈도우에서 실행시 `bash: python: command not found`라는 에러가 난다면, 환경변수 추가가 필요하다. 윈도우 7 사용자는 [여기](http://bitboom.tistory.com/entry/Python-%EC%84%A4%EC%B9%98-%EB%B0%8F-%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98-%EC%84%A4%EC%A0%95)를, 윈도우 8 이상 사용자는 [여기](http://radiation.tistory.com/entry/%ED%99%98%EA%B2%BD%EB%B3%80%EC%88%98%EC%97%90-Python-%EC%B6%94%EA%B0%80%ED%95%98%EA%B8%B0)를 참조하여 환경변수를 설정하고 Git bash를 다시 실행해보자.
 
 - `regex` 모듈이 없다고 에러 메시지가 뜨면, `conda install regex` 또는 `pip install regex`를 쳐서 설치 후 진행한다.
 
@@ -78,7 +103,7 @@
 다운로드가 끝나면 `pbp_data`라는 폴더가 생성되고 그 아래에 연도/월 별로 `JSON` 확장자를 갖는 파일이 다운로드된다.
 
 
-## 4. PBP 데이터 CSV 파일로 변환
+## 5. PBP 데이터 CSV 파일로 변환
 
 JSON파일은 사람의 눈으로 직접 살펴보기 좋지 않다. 엑셀 등으로 쉽게 볼 수 있는 CSV 파일로 변환해보자.
 
