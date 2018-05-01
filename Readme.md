@@ -3,9 +3,8 @@
 
 # 요구 사항
 - [Python 3.5 이상](https://www.python.org/downloads/).
-  - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천한다. __설치 
-  경로 이름에는 가급적 한글을 빼자__!
-  - 필요 모듈 : `lxml`, `BeautifulSoup`, `regex`, `Numpy`, `Matplotlib`, `Pandas`, `IPython`
+  - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천한다. __설치 경로 이름에는 가급적 한글을 빼자__!
+  - 필요 모듈 : `lxml`, `BeautifulSoup`, `regex`, `Numpy`, `Matplotlib`, `Pandas`, `IPython`
   - [Anaconda](https://www.anaconda.com/download/) 설치시 대부분의 모듈이 모두 자동으로 설치된다.
   - `regex`는 추가 설치가 필요한데, Anaconda 설치 후 Anaconda Navigator를 통해 설치하거나 Git Bash(아래 설명 참조), 커맨드 프롬프트 등에서 `conda install regex` 또는 `pip install regex`를 입력하면 설치할 수 있다.
 - OS: Windows, OS X, Linux
