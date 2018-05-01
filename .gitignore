@@ -1,5 +1,5 @@
 *.pyc
-*.txt
+relay*.txt
 bb_data/
 pbp_data/
 __pycache__/
