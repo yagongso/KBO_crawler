@@ -527,6 +527,12 @@ class BallGame:
 
     # 타석 리셋
     def go_to_next_pa(self):
+        # 이전 타석의 결과물을 print한다.
+        # 타석 관련 데이터를 reset한다. 볼, 스트, 아웃 등
+        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B (4)HBP
+        #     이럴 때는 이전 타석 결과를 print한다.
+        # 그 밖의 경우: 타석 도중 교체
+        #     타석 데이터 reset 없이 true만 반환한다.
         if self.made_in_play is True:
             self.print_row()
             # self.print_row_debug()
@@ -543,7 +549,7 @@ class BallGame:
                 self.game_status['balls'] -= 1
                 self.print_row()
                 # self.print_row_debug()
-
+        
         self.game_status['balls'] = 0
         self.game_status['strikes'] = 0
         if self.made_runs is True:
@@ -1595,31 +1601,41 @@ def parse_batter(text, home_batters, away_batters, bid, ball_game):
         )
         return rc
     result = batter_pattern.search(text).group().split(' ')[-1]
+    bat_order = batter_pattern.search(text).group().split(' ')[0][0]
 
+    # 대타면은 그냥 냅둔다.
+    if bat_order.isnumeric() is True:
+        # substitution - > @parse_change
+        rc = ball_game.go_to_next_pa()
+        if type(rc) is str:
+            return rc
+    '''
     # substitution - > @parse_change
     rc = ball_game.go_to_next_pa()
     if type(rc) is str:
         return rc
-    else:
-        ball_game.game_status['batter'] = result
-        if ball_game.game_status['inning_top_bot'] == 0:
-            for b in away_batters:
-                if b['pCode'] == bid:
-                    if b['hitType'] is None:
-                        ball_game.game_status['stands'] = None
-                    else:
-                        ball_game.game_status['stands'] = b['hitType'][2]
-                    break
-        else:
-            for b in home_batters:
-                if b['pCode'] == bid:
-                    if b['hitType'] is None:
-                        ball_game.game_status['stands'] = None
-                    else:
-                        ball_game.game_status['stands'] = b['hitType'][2]
-                    break
+    '''
 
-        return True
+    ball_game.game_status['batter'] = result
+    # 초/말에 따라 타자 검색, 치는손 기록
+    if ball_game.game_status['inning_top_bot'] == 0:
+        for b in away_batters:
+            if b['pCode'] == bid:
+                if b['hitType'] is None:
+                    ball_game.game_status['stands'] = None
+                else:
+                    ball_game.game_status['stands'] = b['hitType'][2]
+                break
+    else:
+        for b in home_batters:
+            if b['pCode'] == bid:
+                if b['hitType'] is None:
+                    ball_game.game_status['stands'] = None
+                else:
+                    ball_game.game_status['stands'] = b['hitType'][2]
+                break
+
+    return True
 
 
 def parse_text(text, text_type, ball_game, game_over,
