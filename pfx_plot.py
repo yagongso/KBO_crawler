@@ -711,7 +711,7 @@ def plot_contour_balls(df, title=None, print_std=False):
     return fig, ax
 
     
-def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.5):
+def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.85):
     set_fonts()
     
     x = np.arange(-1.5, +1.5, 1/12)
@@ -775,10 +775,10 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.5):
     return P, S
 
 
-def plot_heatmap(df, title=None, print_std=False, gaussian=False):
+def plot_heatmap(df, title=None, print_std=False, gaussian=False, sigma=0.85):
     set_fonts()
     
-    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian)
+    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian, sigma=0.85)
     
     lb = -1.5  # leftBorder
     rb = +1.5  # rightBorder
@@ -960,6 +960,8 @@ def pitcher_info(df, pitcher=None):
     groupped['count'] = sub_df.groupby('pitch_type').count().speed
     groupped['max'] = sub_df.groupby('pitch_type').max().speed
     groupped['min'] = sub_df.groupby('pitch_type').min().speed
+    
+    groupped['pct'] = groupped['count'] / groupped['count'].sum() * 100
     
     #display(groupped)
     return groupped
