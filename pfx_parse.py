@@ -1186,7 +1186,7 @@ def parse_pa_result(text, ball_game):
 def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, bid, pts_data):
     if ball_game.game_status['balls'] > 3:
         rc = 'balls > 3 - text : {}\n'.format(text)
-        rc += '{}회 {}:{} {}구'.format(
+        rc += '{}회 {}:{} 타석 {}구'.format(
             ball_game.game_status['inning'],
             ball_game.game_status['pitcher'],
             ball_game.game_status['batter'],
@@ -1204,7 +1204,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         return rc
     elif ball_game.game_status['outs'] > 2:
         rc = 'outs > 3 - text : {}\n'.format(text)
-        rc += '{}회 {}:{} {}구'.format(
+        rc += '{}회 {}:{} 타석 {}구'.format(
             ball_game.game_status['inning'],
             ball_game.game_status['pitcher'],
             ball_game.game_status['batter'],
@@ -1215,7 +1215,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
     if pitch_num == ball_game.game_status['pitch_number']:
         # relay error
         rc = 'same pitch number - text : {}\n'.format(text)
-        rc += '{}회 {}:{} {}구'.format(
+        rc += '{}회 {}:{} 타석 {}구'.format(
             ball_game.game_status['inning'],
             ball_game.game_status['pitcher'],
             ball_game.game_status['batter'],
@@ -1747,12 +1747,10 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
     game_over = [False]
     rc = True
 
-    for k in range(len(rl.keys())):
-        if str(k) not in rl.keys():
-            lm.log('error - ignore and run rest')
-            rc = 'no rl key : game id - {}'.format(game)
-            lm.log(rc)
-            return 1
+    keys = [int(x) for x in sorted(rl.keys())]
+    keys.sort()
+    
+    for k in keys:
         text_set = rl[str(k)]['textOptionList']
 
         if text_set[0]['type'] == 99:
@@ -1762,7 +1760,10 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
                 game_over[0] = True
                 break
 
-        pts_set = rl[str(k)]['ptsOptionList']
+        if 'ptsOptionList' in rl[str(k)].keys():
+            pts_set = rl[str(k)]['ptsOptionList']
+        else:
+            pts_set = []
         pts_dict = {}
         if len(pts_set) > 0:
             for i in range(len(pts_set)):
@@ -1806,22 +1807,26 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
         if game_over[0]:
             break
 
+    returns = 1
     if type(rc) is str:
-        return 1
+        of = game[:13] + '_error.csv'
+        returns = 1
     else:
         of = game[:13] + '.csv'
-        ofp = open(of, 'w', newline='\n')
-        cf = csv.writer(ofp)
-        cf.writerow(header_row)
-        for i in range(len(ball_game.text_row)):
-            cf.writerow(ball_game.text_row[i])
-            if month_file is not None:
-                month_file.writerow(ball_game.text_row[i])
-            if year_file is not None:
-                year_file.writerow(ball_game.text_row[i])
-        ofp.close()
+        returns = True
 
-        return True
+    ofp = open(of, 'w', newline='\n')
+    cf = csv.writer(ofp)
+    cf.writerow(header_row)
+    for i in range(len(ball_game.text_row)):
+        cf.writerow(ball_game.text_row[i])
+        if month_file is not None:
+            month_file.writerow(ball_game.text_row[i])
+        if year_file is not None:
+            year_file.writerow(ball_game.text_row[i])
+    ofp.close()
+
+    return returns
 
 
 def parse_main(args, lm=None):

@@ -1,3 +1,8 @@
 #!/bin/bash
 
-ls -l _patchfiles/* | grep 'txt' | awk '{print $9}' | xargs patch -p0 -i
+unamestr=`uname`
+if [[ "$unamestr" == "Darwin" ]]; then
+    patch -l -p0 -i _patchfiles/patches
+else
+    patch -l -p0 -i _patchfiles/patches_win
+fi

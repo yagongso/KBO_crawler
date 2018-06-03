@@ -32,6 +32,13 @@ def set_fonts():
         rc('font', family='NanumSquare')
         
 
+def clean_debug(df):
+    return df[['pitcher', 'batter', 'inning', 'inning_topbot', 'outs', 'balls', 'strikes',
+               'pitch_result', 'pa_result', 'pitch_type', 'pa_number', 'pitch_number',
+               'score_away', 'score_home',
+               'on_1b', 'on_2b', 'on_3b']]
+    
+        
 def read_light(fname):
     import warnings
     warnings.filterwarnings("ignore")
@@ -69,6 +76,20 @@ def clean_data(df):
     df = df.drop(df.loc[df.sz_bot.isnull()].index)
     df = df.drop(df.loc[df.sz_top.isnull()].index)
     
+    return df
+
+
+def preprocess_data(df):
+    df = df.assign(pit_team=np.where(df.inning_topbot == '말', df.away, df.home))
+    df = df.assign(hit_team=np.where(df.inning_topbot == '초', df.away, df.home))
+
+    df = df.assign(calls=np.where(df.pitch_result=='스트라이크', 1, 0))
+    df = df.assign(stands_cat=np.where(df.stands=='양',
+                                         np.where(df.throws=='좌', 1, 0),
+                                         np.where(df.stands=='우', 0, 1)))
+
+    df.stadium = pd.Categorical(df.stadium)
+    df = df.assign(venue=df.stadium.cat.codes)
     return df
 
 
@@ -135,7 +156,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
             f = df.loc[df.pitch_result == c]
             
             if print_std is True:
-                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*20*72/fig.dpi, label=c)
+                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*40*72/fig.dpi, label=c)
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -143,7 +164,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                             ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                     color='white', fontsize='xx-small', horizontalalignment='center')
             else:
-                ax.scatter(f.px, f.pz, color=Colors[c], alpha=.5, s=np.pi*20*72/fig.dpi, label=c)
+                ax.scatter(f.px, f.pz, color=Colors[c], alpha=.5, s=np.pi*40*72/fig.dpi, label=c)
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -157,7 +178,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                 color = Colors[call]
                 
                 if print_std is True:
-                    ax.scatter(f.px, f.pz_std, color=Colors[call], alpha=.5, s=np.pi*20*72/fig.dpi, label=call)
+                    ax.scatter(f.px, f.pz_std, color=Colors[call], alpha=.5, s=np.pi*40*72/fig.dpi, label=call)
                     
                     if show_pitch_number is True:
                         for i in f.index:
@@ -165,7 +186,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                                 ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                         color='white', fontsize='xx-small', horizontalalignment='center')
                 else:
-                    ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*20*72/fig.dpi, label=call)
+                    ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*40*72/fig.dpi, label=call)
 
                     if show_pitch_number is True:
                         for i in f.index:
@@ -177,7 +198,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
             color = Colors[calls]
             
             if print_std is True:
-                ax.scatter(f.px, f.pz_std, color=Colors[calls], alpha=.5, s=np.pi*20*72/fig.dpi, label=calls)
+                ax.scatter(f.px, f.pz_std, color=Colors[calls], alpha=.5, s=np.pi*40*72/fig.dpi, label=calls)
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -185,7 +206,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                             ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                     color='white', fontsize='xx-small', horizontalalignment='center')
             else:
-                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*20*72/fig.dpi, label=calls)
+                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*40*72/fig.dpi, label=calls)
 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -290,7 +311,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
             f = df.loc[df.pitch_type == p]
             
             if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*20*72/fig.dpi, label=p, cmap='set1')
+                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -298,7 +319,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
                             ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                     color='white', fontsize='xx-small', horizontalalignment='center')
             else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*20*72/fig.dpi, label=p, cmap='set1')
+                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -311,7 +332,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
                 f = df.loc[df.pitch_type == p]
                 
                 if print_std is True:
-                    ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*20*72/fig.dpi, label=p, cmap='set1')
+                    ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
                     
                     if show_pitch_number is True:
                         for i in f.index:
@@ -319,7 +340,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
                                 ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                         color='white', fontsize='xx-small', horizontalalignment='center')
                 else:
-                    ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*20*72/fig.dpi, label=p, cmap='set1')
+                    ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
 
                     if show_pitch_number is True:
                         for i in f.index:
@@ -330,7 +351,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
             f = df.loc[df.pitch_type == pitch_types]
             
             if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*20*72/fig.dpi, label=pitch_types, cmap='set1')
+                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
                 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -338,7 +359,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
                             ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
                                     color='white', fontsize='xx-small', horizontalalignment='center')
             else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*20*72/fig.dpi, label=pitch_types, cmap='set1')
+                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
 
                 if show_pitch_number is True:
                     for i in f.index:
@@ -706,12 +727,12 @@ def plot_contour_balls(df, title=None, print_std=False):
         st = fig.suptitle(title, fontsize=16)
         st.set_weight('bold')
         
-    plt.show()
+    #plt.show()
     
     return fig, ax
 
     
-def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.85):
+def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
     set_fonts()
     
     x = np.arange(-1.5, +1.5, 1/12)
@@ -726,7 +747,13 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.85):
     smask = (df.pitch_result == '스트라이크')
     bmask = (df.pitch_result == '볼')
     
-    sub_df = df.loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot']]
+    if ('sz_top' in df.keys()) & ('sz_bot' in df.keys()):
+        sub_df = df[['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot']]
+    else:
+        if print_std is True:
+            return False
+        sub_df = df[['px', 'pz', 'pitch_result']]
+    
     if print_std is True:
         sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
     
@@ -770,15 +797,15 @@ def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True, sigma=0.85):
                 P[i,j] = 0
     P = P.T
     if gaussian is True:
-        P = gaussian_filter(P, sigma)
+        P = gaussian_filter(P, sigma=0.85, truncate=1, mode='constant', output=np.float32)
     S = (P >= threshold)
     return P, S
 
 
-def plot_heatmap(df, title=None, print_std=False, gaussian=False, sigma=0.85):
+def plot_heatmap(df, title=None, print_std=False, gaussian=False):
     set_fonts()
     
-    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian, sigma=0.85)
+    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian)
     
     lb = -1.5  # leftBorder
     rb = +1.5  # rightBorder
@@ -967,7 +994,212 @@ def pitcher_info(df, pitcher=None):
     return groupped
 
 
-def count_extra_strike_balls(df, rmap, lmap, print_std=True):
+def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
+    if pitcher is not None:
+        if isinstance(pitcher, str):
+            sub_df = df.loc[df.pitcher == pitcher]
+        elif isinstance(pitcher, list):
+            sub_df = df.loc[df.pitcher.isin(pitcher)]
+        elif isinstance(pitcher, pd.Series):
+            if batter.dtypes == np.object:
+                sub_df = df.loc[df.pitcher.isin(pitcher)]
+            else:
+                sub_df = df.loc[df.pitcher.isin(pitcher.index)]
+        else:
+            return False
+    else:
+        sub_df = df
+
+    
+    sub_df = sub_df.assign(swing=np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
+    sub_df = sub_df.assign(miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙']), 1, 0))
+
+    izmask = sub_df.px.between(-10/12, 10/12) & sub_df.pz.between(1.6, 3.6)
+    ozmask = ~izmask
+
+    sub_df = sub_df.assign(iz_swing=
+                           np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                                    & izmask, 1, 0))
+    sub_df = sub_df.assign(iz_miss=
+                           np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                                    & izmask, 1, 0))
+    sub_df = sub_df.assign(oz_swing=
+                           np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                                    & ozmask, 1, 0))
+    sub_df = sub_df.assign(oz_miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                                            & ozmask, 1, 0))
+
+    if isinstance(pitcher, str):
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
+                                 'swing': sub_df.groupby('pitch_type').sum().swing,
+                                 'miss': sub_df.groupby('pitch_type').sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
+                                 'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
+                                 'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
+                                 'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
+                                 'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
+                                })
+        else:
+            d = {'raw_num': sub_df.count().speed,
+                 'swing': sub_df.sum().swing,
+                 'miss': sub_df.sum().miss,
+                 'iz_raw_num': sub_df.loc[izmask].count().speed,
+                 'iz_swing': sub_df.sum().iz_swing,
+                 'iz_miss': sub_df.sum().iz_miss,
+                 'oz_raw_num': sub_df.loc[ozmask].count().speed,
+                 'oz_swing': sub_df.sum().oz_swing,
+                 'oz_miss': sub_df.sum().oz_miss
+                }
+
+            tab = pd.DataFrame(data=d, index=[pitcher])
+    else:
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().swing,
+                                 'miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'iz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher', 'pitch_type']).count().speed,
+                                 'oz_swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().oz_miss
+                                })
+        else:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher']).count().speed,
+                                 'swing': sub_df.groupby(['pitcher']).sum().swing,
+                                 'miss': sub_df.groupby(['pitcher']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['pitcher']).count().speed,
+                                 'iz_swing': sub_df.groupby(['pitcher']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['pitcher']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['pitcher']).count().speed,
+                                 'oz_swing': sub_df.groupby(['pitcher']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['pitcher']).sum().oz_miss
+                                })
+        
+    tab = tab.assign(swing_p = tab.swing / tab.raw_num*100,
+                     swstr_p = tab.miss / tab.raw_num*100,
+                     iz_swing_p = tab.iz_swing / tab.iz_raw_num*100,
+                     iz_con_p = (1 - tab.iz_miss / tab.iz_swing)*100,
+                     oz_swing_p = tab.oz_swing / tab.oz_raw_num*100,
+                     oz_con_p = (1 - tab.oz_miss / tab.oz_swing)*100,
+                    )
+    
+    return tab[['swing_p', 'swstr_p', 'iz_swing_p', 'iz_con_p', 'oz_swing_p', 'oz_con_p']]
+
+
+def batter_plate_discipline(df, batter=None, by_pitch=False):
+    if batter is not None:
+        if isinstance(batter, str):
+            sub_df = df.loc[df.batter == batter]
+        elif isinstance(batter, list):
+            sub_df = df.loc[df.batter.isin(batter)]
+        elif isinstance(batter, pd.Series):
+            if batter.dtypes == np.object:
+                sub_df = df.loc[df.batter.isin(batter)]
+            else:
+                sub_df = df.loc[df.batter.isin(batter.index)]
+        else:
+            return False
+    else:
+        sub_df = df
+    
+    sub_df = sub_df.assign(swing=np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
+    sub_df = sub_df.assign(miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙']), 1, 0))
+
+    izmask = sub_df.px.between(-10/12, 10/12) & sub_df.pz.between(1.6, 3.6)
+    ozmask = ~izmask
+
+    sub_df = sub_df.assign(iz_swing=
+                           np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                                    & izmask, 1, 0))
+    sub_df = sub_df.assign(iz_miss=
+                           np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                                    & izmask, 1, 0))
+    sub_df = sub_df.assign(oz_swing=
+                           np.where(sub_df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                                    & ozmask, 1, 0))
+    sub_df = sub_df.assign(oz_miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                                            & ozmask, 1, 0))
+
+    
+    if isinstance(batter, str):
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
+                                 'swing': sub_df.groupby('pitch_type').sum().swing,
+                                 'miss': sub_df.groupby('pitch_type').sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby('pitch_type').count().speed,
+                                 'iz_swing': sub_df.groupby('pitch_type').sum().iz_swing,
+                                 'iz_miss': sub_df.groupby('pitch_type').sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby('pitch_type').count().speed,
+                                 'oz_swing': sub_df.groupby('pitch_type').sum().oz_swing,
+                                 'oz_miss': sub_df.groupby('pitch_type').sum().oz_miss
+                                })
+        else:
+            d = {'raw_num': sub_df.count().speed,
+                 'swing': sub_df.sum().swing,
+                 'miss': sub_df.sum().miss,
+                 'iz_raw_num': sub_df.loc[izmask].count().speed,
+                 'iz_swing': sub_df.sum().iz_swing,
+                 'iz_miss': sub_df.sum().iz_miss,
+                 'oz_raw_num': sub_df.loc[ozmask].count().speed,
+                 'oz_swing': sub_df.sum().oz_swing,
+                 'oz_miss': sub_df.sum().oz_miss
+                }
+
+            tab = pd.DataFrame(data=d, index=[batter])
+
+        tab = tab.assign(swing_p = tab.swing / tab.raw_num*100,
+                         swstr_p = tab.miss / tab.raw_num*100,
+                         iz_swing_p = tab.iz_swing / tab.iz_raw_num*100,
+                         iz_con_p = (1 - tab.iz_miss / tab.iz_swing)*100,
+                         oz_swing_p = tab.oz_swing / tab.oz_raw_num*100,
+                         oz_con_p = (1 - tab.oz_miss / tab.oz_swing)*100,
+                        )
+    else:
+        if by_pitch is True:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['batter', 'pitch_type']).count().speed,
+                                 'swing': sub_df.groupby(['batter', 'pitch_type']).sum().swing,
+                                 'miss': sub_df.groupby(['batter', 'pitch_type']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['batter', 'pitch_type']).count().speed,
+                                 'iz_swing': sub_df.groupby(['batter', 'pitch_type']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['batter', 'pitch_type']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['batter', 'pitch_type']).count().speed,
+                                 'oz_swing': sub_df.groupby(['batter', 'pitch_type']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['batter', 'pitch_type']).sum().oz_miss
+                                })
+        else:
+            tab =  pd.DataFrame({'raw_num': sub_df.groupby(['batter']).count().speed,
+                                 'swing': sub_df.groupby(['batter']).sum().swing,
+                                 'miss': sub_df.groupby(['batter']).sum().miss,
+                                 'iz_raw_num': sub_df.loc[izmask].groupby(['batter']).count().speed,
+                                 'iz_swing': sub_df.groupby(['batter']).sum().iz_swing,
+                                 'iz_miss': sub_df.groupby(['batter']).sum().iz_miss,
+                                 'oz_raw_num': sub_df.loc[ozmask].groupby(['batter']).count().speed,
+                                 'oz_swing': sub_df.groupby(['batter']).sum().oz_swing,
+                                 'oz_miss': sub_df.groupby(['batter']).sum().oz_miss
+                                })
+
+        tab = tab.assign(swing_p = tab.swing / tab.raw_num*100,
+                         swstr_p = tab.miss / tab.raw_num*100,
+                         iz_swing_p = tab.iz_swing / tab.iz_raw_num*100,
+                         iz_con_p = (1 - tab.iz_miss / tab.iz_swing)*100,
+                         oz_swing_p = tab.oz_swing / tab.oz_raw_num*100,
+                         oz_con_p = (1 - tab.oz_miss / tab.oz_swing)*100,
+                        )
+            
+    
+    return tab[['swing_p', 'swstr_p', 'iz_swing_p', 'iz_con_p', 'oz_swing_p', 'oz_con_p']]
+
+
+RV = np.asarray([
+    0.087, 0.124, 0.177, 0.149,
+    0.104, 0.136, 0.210, 0.281,
+    0.248, 0.294, 0.402, 0.689
+])
+
+def count_extra_strike_balls(df, rmap, lmap, print_std=True, use_RV=False):
     # 36x36 size heatmap
     
     # bin 별로 스트라이크 개수/볼 개수 측정
@@ -979,7 +1211,13 @@ def count_extra_strike_balls(df, rmap, lmap, print_std=True):
     smask = (df.pitch_result == '스트라이크')
     bmask = (df.pitch_result == '볼')
     
-    sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot', 'stands']]
+    if ('sz_bot' in df.keys()) & ('sz_top' in df.keys()):
+        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot', 'stands', 'balls', 'strikes']]
+    else:
+        if print_std is True:
+            return False
+        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'stands', 'balls', 'strikes']]
+    
     if print_std is True:
         sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
     
@@ -1006,15 +1244,148 @@ def count_extra_strike_balls(df, rmap, lmap, print_std=True):
             ind1 = int((x+1.5)*12)
             ind2 = int((y-1)*12)
         
-        if row.stands == '우':
-            if row.pitch_result == '스트라이크':
-                es += 1-rmap[ind2][ind1]
+        if use_RV is False:
+            if row.stands == '우':
+                if row.pitch_result == '스트라이크':
+                    es += 1-rmap[ind2][ind1]
+                else:
+                    eb += rmap[ind2][ind1]
             else:
-                eb += rmap[ind2][ind1]
+                if row.pitch_result == '스트라이크':
+                    es += 1-lmap[ind2][ind1]
+                else:
+                    eb += lmap[ind2][ind1]
         else:
-            if row.pitch_result == '스트라이크':
-                es += 1-lmap[ind2][ind1]
+            if row.stands == '우':
+                if row.pitch_result == '스트라이크':
+                    es += (1-rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
+                else:
+                    eb += (rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
             else:
-                eb += lmap[ind2][ind1]
-                
+                if row.pitch_result == '스트라이크':
+                    es += (1-lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
+                else:
+                    eb += (lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
     return es, eb
+
+
+def get_framing_gam(df, gam, use_RV=False):
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
+    
+    if 'venue' not in sub_df.keys():
+        X_target = sub_df[['px', 'pz', 'stands_cat', 'ref_cat']]
+    else:
+        X_target = sub_df[['px', 'pz', 'stands_cat', 'venue', 'ref_cat']]
+
+    predictions = gam.predict(X_target)
+    
+    if use_RV is True:
+        y_comp = pd.DataFrame({'calls': sub_df.calls.get_values(),
+                               'pred': predictions,
+                               'balls': sub_df.balls.get_values(),
+                               'strikes': sub_df.strikes.get_values()})
+        
+        y_comp['extra'] = np.where(y_comp.calls != y_comp.pred,
+                                   np.where(y_comp.pred == False,
+                                            RV[y_comp.balls+y_comp.strikes*4],
+                                            -RV[y_comp.balls+y_comp.strikes*4]),
+                                   0)
+        
+    else:
+        y_comp = pd.DataFrame({'calls': sub_df.calls.get_values(), 'pred': predictions})
+        
+        y_comp['extra'] = np.where(y_comp.calls != y_comp.pred,
+                                   np.where(y_comp.pred == False, 1, -1), 0)
+        
+    return y_comp.loc[y_comp.extra > 0].extra.sum(), y_comp.loc[y_comp.extra < 0].extra.sum()
+
+
+def get_season_framing_cell(df, use_RV=False, min_catch=0):
+    if '양' in df.stands.drop_duplicates():
+        df = df.assign(stands_cat=np.where(df.stands=='양',
+                                           np.where(df.throws=='좌', '우', '좌'),
+                                           np.where(df.stands=='우', '좌', '우'))
+                      )
+        
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
+    
+    Rmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '우'], print_std=False, gaussian=True)
+    Lmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '좌'], print_std=False, gaussian=True)
+
+    catchers = sub_df.pos_2.drop_duplicates()
+    extras = []
+
+    for c in catchers:
+        caughts = sub_df.loc[sub_df.pos_2 == c]
+        es, eb = count_extra_strike_balls(caughts, Rmap, Lmap, print_std=False, use_RV=use_RV)
+        if use_RV is False:
+            es *= 0.198
+            eb *= 0.198
+
+        extras.append((c, len(caughts), es, eb))
+
+    extras.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
+
+    print('이름\t판정 횟수\t+Str\t-Ball\t+Run\t+Run/2000')
+    for x in extras:
+        if x[1] < min_catch:
+            continue
+        print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(x[0], x[1], x[2], x[3], x[2]-x[3],
+                                                              (x[2]-x[3])/x[1]*2000))
+        
+def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
+    if 'calls' not in df.keys():
+        # strike call: 1, ball call: 0
+        df = df.assign(calls=np.where(df.pitch_result=='스트라이크', 1, 0))
+        
+    if 'stands_cat' not in df.keys():
+        df = df.assign(stands_cat=np.where(df.stands=='양',
+                                           np.where(df.throws=='좌', 1, 0),
+                                           np.where(df.stands=='우', 1, 0)))
+        
+    if 'venue' not in df.keys():
+        df.stadium = pd.Categorical(df.stadium)
+        df['venue'] = df.stadium.cat.codes
+
+    if gam is None:
+        if 'pz_adjusted' not in df.keys():
+            df = df.assign(pz_adjusted=(df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
+
+        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue', 'ref_cat']]
+        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
+        X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue', 'ref_cat']]
+        y = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['calls']]
+
+        gam = LogisticGAM().fit(X, y)
+
+    if use_RV is True:
+        #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
+        sub_df = df[['px', 'pz', 'stands_cat', 'ref_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
+    else:
+        #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+        sub_df = df[['px', 'pz', 'stands_cat', 'ref_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+    
+    catchers = sub_df.pos_2.drop_duplicates()
+
+    results = []
+
+    for c in catchers:
+        caughts = sub_df.loc[(sub_df.pos_2 == c) & sub_df.pitch_result.isin(['스트라이크', '볼'])]
+        if len(caughts) == 0:
+            continue
+        es, eb = get_framing_gam(sub_df.loc[sub_df.pos_2 == c], gam, use_RV)
+        if use_RV is False:
+            es *= 0.198
+            eb *= 0.198
+        results.append((c, len(caughts), es, eb))
+
+    results.sort(key=lambda tup:tup[2]+tup[3], reverse=True)
+
+    print('Framing w/ GAM')
+    print('이름\t포구기회\tExStr\tExBall\tExCall\tEC/2000')
+
+    for r in results:
+        if r[1] < min_catch:
+            continue
+        else:
+            print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(r[0], r[1], r[2], r[3], r[2]+r[3], (r[2]+r[3])/r[1]*2000))
