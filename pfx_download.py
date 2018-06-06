@@ -160,7 +160,7 @@ def download_relay(args, lm=None):
                 if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
                     skipped += 1
                     continue
-                if int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d')):
+                if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
                     skipped += 1
                     continue
                 if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
@@ -375,6 +375,9 @@ def download_pfx(args, lm=None):
             skipped = 0
             for game_id in game_ids[year][month]:
                 if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
+                    skipped += 1
+                    continue
+                if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
                     skipped += 1
                     continue
                 if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
