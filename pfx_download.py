@@ -377,9 +377,6 @@ def download_pfx(args, lm=None):
                 if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
                     skipped += 1
                     continue
-                if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
-                    skipped += 1
-                    continue
                 if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
                     skipped += 1
                     continue
