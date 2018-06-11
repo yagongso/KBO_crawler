@@ -15,6 +15,7 @@ import pandas as pd
 import datetime
 import time
 import regex
+import ast
 
 # custom library
 import logManager
@@ -211,11 +212,13 @@ def download_relay(args, lm=None):
                 if res is not None:
                     txt = {}
                     js = res.json()
-
+                    if isinstance(js, str):
+                        #js = json.loads(js)
+                        js = ast.literal_eval(js)
                     last_inning = js['currentInning']
 
                     if last_inning is None:
-                        skipped + + 1
+                        skipped += 1
                         lm.log('Gameday not found : {}'.format(game_id))
                         continue
 
@@ -236,6 +239,9 @@ def download_relay(args, lm=None):
                         res = requests.get(relay_url, params=params, headers=headers)
                         if res is not None:
                             js = res.json()
+                            if isinstance(js, str):
+                                #js = json.loads(js)
+                                js = ast.literal_eval(js)
                             for i in range(len(js['relayList'])):
                                 txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
                         else:
@@ -416,6 +422,10 @@ def download_pfx(args, lm=None):
                 if res is not None:
                     # load json structure
                     js = res.json()
+                    if isinstance(js, str):
+                        #js = json.loads(js)
+                        js = ast.literal_eval(js)
+
                     if js is None:
                         lm.log('PFX data missing : {}'.format(game_id))
                         skipped += 1
