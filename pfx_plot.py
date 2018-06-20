@@ -18,7 +18,10 @@ import os
 from enum import Enum
 import numbers
 from scipy.ndimage.filters import gaussian_filter
-from pygam import LogisticGAM
+
+import importlib
+if importlib.util.find_spec('pygam') is not None:
+    from pygam import LogisticGAM
 
 Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파울 번트헛스윙')
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
@@ -1272,6 +1275,9 @@ def count_extra_strike_balls(df, rmap, lmap, print_std=True, use_RV=False):
 
 
 def get_framing_gam(df, gam, use_RV=False):
+    if importlib.util.find_spec('pygam') is None:
+        return None
+    
     sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
     
     if 'venue' not in sub_df.keys():
@@ -1336,6 +1342,9 @@ def get_season_framing_cell(df, use_RV=False, min_catch=0):
                                                               (x[2]-x[3])/x[1]*2000))
         
 def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
+    if importlib.util.find_spec('pygam') is not None:
+        return None
+    
     if 'calls' not in df.keys():
         # strike call: 1, ball call: 0
         df = df.assign(calls=np.where(df.pitch_result=='스트라이크', 1, 0))
@@ -1395,6 +1404,8 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
             
 def graph_plate_discipline(df, batter, ma_term=0):
     datesFmt = mdates.DateFormatter('%-m-%d')
+    
+    df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
     if df.px.dtypes == np.object:
         df.loc[:, 'px'] = pd.to_numeric(df.px, errors='coerce')
@@ -1602,6 +1613,8 @@ def graph_plate_discipline(df, batter, ma_term=0):
     
 def graph_batting_result(df, batter, ma_term=0):
     datesFmt = mdates.DateFormatter('%-m-%d')
+    
+    df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
     df = df.assign(pa=np.where(df.pa_result != 'None', 1, 0))
     df = df.assign(ab=np.where(df.pa_result.isin(['1루타', '내야안타', '안타', '2루타', '3루타', '홈런', '희생번트 야수선택',
