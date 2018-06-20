@@ -8,6 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy.random
 import matplotlib.ticker as ticker
+import matplotlib.dates as mdates
 import datetime
 from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
@@ -17,6 +18,7 @@ import os
 from enum import Enum
 import numbers
 from scipy.ndimage.filters import gaussian_filter
+from pygam import LogisticGAM
 
 Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파울 번트헛스윙')
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
@@ -1001,7 +1003,7 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
         elif isinstance(pitcher, list):
             sub_df = df.loc[df.pitcher.isin(pitcher)]
         elif isinstance(pitcher, pd.Series):
-            if batter.dtypes == np.object:
+            if pitcher.dtypes == np.object:
                 sub_df = df.loc[df.pitcher.isin(pitcher)]
             else:
                 sub_df = df.loc[df.pitcher.isin(pitcher.index)]
@@ -1273,9 +1275,9 @@ def get_framing_gam(df, gam, use_RV=False):
     sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
     
     if 'venue' not in sub_df.keys():
-        X_target = sub_df[['px', 'pz', 'stands_cat', 'ref_cat']]
+        X_target = sub_df[['px', 'pz', 'stands_cat']]
     else:
-        X_target = sub_df[['px', 'pz', 'stands_cat', 'venue', 'ref_cat']]
+        X_target = sub_df[['px', 'pz', 'stands_cat', 'venue']]
 
     predictions = gam.predict(X_target)
     
@@ -1351,19 +1353,19 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
         if 'pz_adjusted' not in df.keys():
             df = df.assign(pz_adjusted=(df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
 
-        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue', 'ref_cat']]
+        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue']]
         #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
-        X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue', 'ref_cat']]
+        X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
         y = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['calls']]
 
         gam = LogisticGAM().fit(X, y)
 
     if use_RV is True:
         #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
-        sub_df = df[['px', 'pz', 'stands_cat', 'ref_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
+        sub_df = df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
     else:
         #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
-        sub_df = df[['px', 'pz', 'stands_cat', 'ref_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+        sub_df = df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
     
     catchers = sub_df.pos_2.drop_duplicates()
 
@@ -1389,3 +1391,396 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
             continue
         else:
             print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(r[0], r[1], r[2], r[3], r[2]+r[3], (r[2]+r[3])/r[1]*2000))
+            
+            
+def graph_plate_discipline(df, batter, ma_term=0):
+    datesFmt = mdates.DateFormatter('%-m-%d')
+    
+    if df.px.dtypes == np.object:
+        df.loc[:, 'px'] = pd.to_numeric(df.px, errors='coerce')
+    if df.isnull().any().px is False:
+        df = df.drop(df.loc[df.px.isnull()].index)
+
+    if df.pz.dtypes == np.object:
+        df.loc[:, 'pz'] = pd.to_numeric(df.pz, errors='coerce')
+    if df.isnull().any().pz is False:
+        df = df.drop(df.loc[df.pz.isnull()].index)
+        
+    df = df.assign(swing=np.where(df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
+    df = df.assign(miss=np.where(df.pitch_result.isin(['번트헛스윙', '헛스윙']), 1, 0))
+
+    izmask = df.px.between(-10/12, 10/12) & df.pz.between(1.6, 3.6)
+    ozmask = ~izmask
+
+    df = df.assign(iz_swing=
+                   np.where(df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                            & izmask, 1, 0))
+    df = df.assign(iz_miss=
+                   np.where(df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                            & izmask, 1, 0))
+    df = df.assign(oz_swing=
+                   np.where(df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울'])
+                            & ozmask, 1, 0))
+    df = df.assign(oz_miss=
+                   np.where(df.pitch_result.isin(['번트헛스윙', '헛스윙'])
+                                            & ozmask, 1, 0))
+    sub_df = df.loc[df.batter == batter]
+    tab = sub_df.pivot_table(index='game_date',
+                             values=['swing', 'miss', 'iz_swing', 'iz_miss', 'oz_swing', 'oz_miss'],
+                             aggfunc='sum'
+                            )
+    tab = tab.assign(raw_num = sub_df.groupby('game_date').count().speed)
+    tab = tab.assign(iz_raw_num = sub_df.loc[izmask].groupby('game_date').count().speed)
+    tab = tab.assign(oz_raw_num = sub_df.loc[ozmask].groupby('game_date').count().speed)
+    
+    tab = tab.fillna(0)
+    result_sum = []
+    
+    if (ma_term <= 1) or (ma_term >= len(tab.index)):
+        raw_num_sum = 0
+        swing_sum = 0
+        miss_sum = 0
+        iz_raw_num_sum = 0
+        iz_swing_sum = 0
+        iz_miss_sum = 0
+        oz_raw_num_sum = 0
+        oz_swing_sum = 0
+        oz_miss_sum = 0
+
+        for i in tab.index:
+            raw_num_sum += tab.loc[i].raw_num
+            swing_sum += tab.loc[i].swing
+            miss_sum += tab.loc[i].miss
+            iz_raw_num_sum += tab.loc[i].iz_raw_num
+            iz_swing_sum += tab.loc[i].iz_swing
+            iz_miss_sum += tab.loc[i].iz_miss
+            oz_raw_num_sum += tab.loc[i].oz_raw_num
+            oz_swing_sum += tab.loc[i].oz_swing
+            oz_miss_sum += tab.loc[i].oz_miss
+            
+            #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            
+            result_sum.append([swing_sum/raw_num_sum*100,
+                               (1-miss_sum/raw_num_sum)*100,
+                               iz_swing_sum/iz_raw_num_sum*100,
+                               (1-iz_miss_sum/iz_swing_sum)*100,
+                               oz_swing_sum/oz_raw_num_sum*100,
+                               (1-oz_miss_sum/oz_swing_sum)*100])
+            
+        rs = np.array(result_sum)
+            
+        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
+        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=16)
+
+        #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+        a1 = fig.add_subplot(231)
+        a1.plot(tab.index, rs[:, 0])
+        a1.xaxis.set_major_formatter(datesFmt)
+        a1.grid(True)
+        a1.set_xlabel('date', fontsize=12)
+        a1.set_ylabel('swing%', fontsize=12)
+
+        a2 = fig.add_subplot(232)
+        a2.plot(tab.index, rs[:, 1])
+        a2.xaxis.set_major_formatter(datesFmt)
+        a2.grid(True)
+        a2.set_xlabel('date', fontsize=12)
+        a2.set_ylabel('contact%', fontsize=12)
+
+        a3 = fig.add_subplot(233)
+        a3.plot(tab.index, rs[:, 2])
+        a3.xaxis.set_major_formatter(datesFmt)
+        a3.grid(True)
+        a3.set_xlabel('date', fontsize=12)
+        a3.set_ylabel('iz-swing%', fontsize=12)
+
+        a4 = fig.add_subplot(234)
+        a4.plot(tab.index, rs[:, 3])
+        a4.xaxis.set_major_formatter(datesFmt)
+        a4.grid(True)
+        a4.set_xlabel('date', fontsize=12)
+        a4.set_ylabel('iz-con%', fontsize=12)
+
+        a5 = fig.add_subplot(235)
+        a5.plot(tab.index, rs[:, 4])
+        a5.xaxis.set_major_formatter(datesFmt)
+        a5.grid(True)
+        a5.set_xlabel('date', fontsize=12)
+        a5.set_ylabel('oz-swing%', fontsize=12)
+
+        a6 = fig.add_subplot(236)
+        a6.plot(tab.index, rs[:, 5])
+        a6.xaxis.set_major_formatter(datesFmt)
+        a6.grid(True)
+        a6.set_xlabel('date', fontsize=12)
+        a6.set_ylabel('oz-con%', fontsize=12)
+
+        return fig
+    else:
+        raw_num_sum = 0
+        swing_sum = 0
+        miss_sum = 0
+        iz_raw_num_sum = 0
+        iz_swing_sum = 0
+        iz_miss_sum = 0
+        oz_raw_num_sum = 0
+        oz_swing_sum = 0
+        oz_miss_sum = 0
+        
+        term = ma_term - 1
+
+        for i in range(0, len(tab.index) - term):
+            raw_num_sum = tab.loc[tab.index[i]:tab.index[i+term]].raw_num.sum()
+            swing_sum = tab.loc[tab.index[i]:tab.index[i+term]].swing.sum()
+            miss_sum = tab.loc[tab.index[i]:tab.index[i+term]].miss.sum()
+            iz_raw_num_sum = tab.loc[tab.index[i]:tab.index[i+term]].iz_raw_num.sum()
+            iz_swing_sum = tab.loc[tab.index[i]:tab.index[i+term]].iz_swing.sum()
+            iz_miss_sum = tab.loc[tab.index[i]:tab.index[i+term]].iz_miss.sum()
+            oz_raw_num_sum = tab.loc[tab.index[i]:tab.index[i+term]].oz_raw_num.sum()
+            oz_swing_sum = tab.loc[tab.index[i]:tab.index[i+term]].oz_swing.sum()
+            oz_miss_sum = tab.loc[tab.index[i]:tab.index[i+term]].oz_miss.sum()
+            
+            #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            
+            result_sum.append([swing_sum/raw_num_sum*100,
+                               (1-miss_sum/raw_num_sum)*100,
+                               iz_swing_sum/iz_raw_num_sum*100,
+                               (1-iz_miss_sum/iz_swing_sum)*100,
+                               oz_swing_sum/oz_raw_num_sum*100,
+                               (1-oz_miss_sum/oz_swing_sum)*100])
+    
+        rs = np.array(result_sum)
+    
+        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
+        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average', fontsize=16)
+
+        #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+        a1 = fig.add_subplot(231)
+        a1.plot(tab.index[term:], rs[:, 0])
+        a1.xaxis.set_major_formatter(datesFmt)
+        a1.grid(True)
+        a1.set_xlabel('date', fontsize=12)
+        a1.set_ylabel('swing%', fontsize=12)
+
+        a2 = fig.add_subplot(234)
+        a2.plot(tab.index[term:], rs[:, 1])
+        a2.xaxis.set_major_formatter(datesFmt)
+        a2.grid(True)
+        a2.set_xlabel('date', fontsize=12)
+        a2.set_ylabel('contact%', fontsize=12)
+
+        a3 = fig.add_subplot(232)
+        a3.plot(tab.index[term:], rs[:, 2])
+        a3.xaxis.set_major_formatter(datesFmt)
+        a3.grid(True)
+        a3.set_xlabel('date', fontsize=12)
+        a3.set_ylabel('iz-swing%', fontsize=12)
+
+        a4 = fig.add_subplot(235)
+        a4.plot(tab.index[term:], rs[:, 3])
+        a4.xaxis.set_major_formatter(datesFmt)
+        a4.grid(True)
+        a4.set_xlabel('date', fontsize=12)
+        a4.set_ylabel('iz-con%', fontsize=12)
+
+        a5 = fig.add_subplot(233)
+        a5.plot(tab.index[term:], rs[:, 4])
+        a5.xaxis.set_major_formatter(datesFmt)
+        a5.grid(True)
+        a5.set_xlabel('date', fontsize=12)
+        a5.set_ylabel('oz-swing%', fontsize=12)
+
+        a6 = fig.add_subplot(236)
+        a6.plot(tab.index[term:], rs[:, 5])
+        a6.xaxis.set_major_formatter(datesFmt)
+        a6.grid(True)
+        a6.set_xlabel('date', fontsize=12)
+        a6.set_ylabel('oz-con%', fontsize=12)
+
+        return fig
+    
+    
+def graph_batting_result(df, batter, ma_term=0):
+    datesFmt = mdates.DateFormatter('%-m-%d')
+    
+    df = df.assign(pa=np.where(df.pa_result != 'None', 1, 0))
+    df = df.assign(ab=np.where(df.pa_result.isin(['1루타', '내야안타', '안타', '2루타', '3루타', '홈런', '희생번트 야수선택',
+                                                  '삼진', '실책', '필드 아웃', '포스 아웃', '병살타', '타구맞음 아웃',
+                                                  '낫아웃 폭투', '희생번트 실책', '야수선택', '낫아웃 포일', '삼중살']),
+                               1, 0))
+    
+    df = df.assign(single=np.where(df.pa_result.isin(['1루타', '내야안타', '안타']), 1, 0))
+    df = df.assign(double=np.where(df.pa_result == '2루타', 1, 0))
+    df = df.assign(triple=np.where(df.pa_result == '3루타', 1, 0))
+    df = df.assign(hr=np.where(df.pa_result == '홈런', 1, 0))
+    
+    df = df.assign(sh=np.where(df.pa_result == '희생번트', 1, 0))
+    df = df.assign(sf=np.where(df.pa_result == '희생플라이', 1, 0))
+    df = df.assign(so=np.where(df.pa_result.isin(['삼진', '낫아웃 폭투', '낫아웃 포일']), 1, 0))
+    df = df.assign(bb=np.where(df.pa_result.isin(['볼넷', '고의4구']), 1, 0))
+    df = df.assign(hbp=np.where(df.pa_result == '몸에 맞는 볼', 1, 0))
+    
+    df = df.assign(hit=df.single + df.double + df.triple + df.hr)
+    df = df.assign(tb=df.single + df.double*2 + df.triple*3 + df.hr*4)
+    
+    sub_df = df.loc[df.batter == batter]
+    tab = sub_df.pivot_table(index='game_date',
+                             values=['hit', 'tb', 'ab', 'pa', 'hr', 'sh', 'sf', 'so', 'bb', 'hbp'],
+                             aggfunc='sum'
+                            )
+    
+    #babip = (hit-hr) / (ab-so-hr+sf)
+    tab = tab.fillna(0)
+    result_sum = []
+    
+    if (ma_term <= 1) or (ma_term >= len(tab.index)):
+        hit_sum = tb_sum = 0
+        ab_sum = pa_sum = 0
+        hr_sum = sh_sum = sf_sum = 0
+        so_sum = bb_sum = hbp_sum = 0
+
+        for i in tab.index:
+            hit_sum += tab.loc[i].hit
+            tb_sum += tab.loc[i].tb
+            ab_sum += tab.loc[i].ab
+            pa_sum += tab.loc[i].pa
+            hr_sum += tab.loc[i].hr
+            sh_sum += tab.loc[i].sh
+            sf_sum += tab.loc[i].sf
+            so_sum += tab.loc[i].so
+            bb_sum += tab.loc[i].bb
+            hbp_sum += tab.loc[i].hbp
+            
+            # avg, obp, slg, ops, babip
+            
+            result_sum.append([hit_sum/ab_sum, # avg
+                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # obp
+                               tb_sum/ab_sum, # slg
+                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, #ops
+                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
+                              ])
+            
+        rs = np.array(result_sum)
+            
+        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
+        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=16)
+
+        a1 = fig.add_subplot(231)
+        a1.plot(tab.index.get_values(), rs[:, 0])
+        a1.xaxis.set_major_formatter(datesFmt)
+        a1.grid(True)
+        a1.set_xlabel('date', fontsize=12)
+        a1.set_ylabel('AVG', fontsize=12)
+
+        a2 = fig.add_subplot(232)
+        a2.plot(tab.index, rs[:, 1])
+        a2.xaxis.set_major_formatter(datesFmt)
+        a2.grid(True)
+        a2.set_xlabel('date', fontsize=12)
+        a2.set_ylabel('OBP', fontsize=12)
+
+        a3 = fig.add_subplot(233)
+        a3.plot(tab.index, rs[:, 2])
+        a3.xaxis.set_major_formatter(datesFmt)
+        a3.grid(True)
+        a3.set_xlabel('date', fontsize=12)
+        a3.set_ylabel('SLG', fontsize=12)
+
+        a4 = fig.add_subplot(234)
+        a4.plot(tab.index, rs[:, 3])
+        a4.xaxis.set_major_formatter(datesFmt)
+        a4.grid(True)
+        a4.set_xlabel('date', fontsize=12)
+        a4.set_ylabel('OPS', fontsize=12)
+
+        a5 = fig.add_subplot(235)
+        a5.plot(tab.index, rs[:, 4])
+        a5.xaxis.set_major_formatter(datesFmt)
+        a5.grid(True)
+        a5.set_xlabel('date', fontsize=12)
+        a5.set_ylabel('BABIP', fontsize=12)
+        
+        a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a4.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a5.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        
+        return fig
+
+    else:
+        hit_sum = tb_sum = 0
+        ab_sum = pa_sum = 0
+        hr_sum = sh_sum = sf_sum = 0
+        so_sum = bb_sum = hbp_sum = 0
+        
+        term = ma_term - 1
+
+        for i in range(0, len(tab.index) - term):
+            hit_sum = tab.loc[tab.index[i]:tab.index[i+term]].hit.sum()
+            tb_sum = tab.loc[tab.index[i]:tab.index[i+term]].tb.sum()
+            ab_sum = tab.loc[tab.index[i]:tab.index[i+term]].ab.sum()
+            pa_sum = tab.loc[tab.index[i]:tab.index[i+term]].pa.sum()
+            hr_sum = tab.loc[tab.index[i]:tab.index[i+term]].hr.sum()
+            sh_sum = tab.loc[tab.index[i]:tab.index[i+term]].sh.sum()
+            sf_sum = tab.loc[tab.index[i]:tab.index[i+term]].sf.sum()
+            so_sum = tab.loc[tab.index[i]:tab.index[i+term]].so.sum()
+            bb_sum = tab.loc[tab.index[i]:tab.index[i+term]].bb.sum()
+            hbp_sum = tab.loc[tab.index[i]:tab.index[i+term]].hbp.sum()
+            
+            # avg, obp, slg, ops, babip
+            
+            result_sum.append([hit_sum/ab_sum, # avg
+                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # obp
+                               tb_sum/ab_sum, # slg
+                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, #ops
+                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
+                              ])
+            
+        rs = np.array(result_sum)
+            
+        fig = plt.figure(figsize=(18, 8), dpi=72, facecolor='white')
+        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average', fontsize=16)
+
+        a1 = fig.add_subplot(231)
+        a1.plot(tab.index[term:], rs[:, 0])
+        a1.xaxis.set_major_formatter(datesFmt)
+        a1.grid(True)
+        a1.set_xlabel('date', fontsize=12)
+        a1.set_ylabel('AVG', fontsize=12)
+
+        a2 = fig.add_subplot(232)
+        a2.plot(tab.index[term:], rs[:, 1])
+        a2.xaxis.set_major_formatter(datesFmt)
+        a2.grid(True)
+        a2.set_xlabel('date', fontsize=12)
+        a2.set_ylabel('OBP', fontsize=12)
+
+        a3 = fig.add_subplot(233)
+        a3.plot(tab.index[term:], rs[:, 2])
+        a3.xaxis.set_major_formatter(datesFmt)
+        a3.grid(True)
+        a3.set_xlabel('date', fontsize=12)
+        a3.set_ylabel('SLG', fontsize=12)
+
+        a4 = fig.add_subplot(234)
+        a4.plot(tab.index[term:], rs[:, 3])
+        a4.xaxis.set_major_formatter(datesFmt)
+        a4.grid(True)
+        a4.set_xlabel('date', fontsize=12)
+        a4.set_ylabel('OPS', fontsize=12)
+
+        a5 = fig.add_subplot(235)
+        a5.plot(tab.index[term:], rs[:, 4])
+        a5.xaxis.set_major_formatter(datesFmt)
+        a5.grid(True)
+        a5.set_xlabel('date', fontsize=12)
+        a5.set_ylabel('BABIP', fontsize=12)
+        
+        a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a4.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        a5.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        
+        return fig
