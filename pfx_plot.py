@@ -1403,9 +1403,10 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
             
             
 def graph_plate_discipline(df, batter, ma_term=0):
-    datesFmt = mdates.DateFormatter('%-m-%d')
+    datesFmt = mdates.DateFormatter('%m-%d')
     
-    df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
+    if df.game_date.dtype == np.int64:
+        df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
     if df.px.dtypes == np.object:
         df.loc[:, 'px'] = pd.to_numeric(df.px, errors='coerce')
@@ -1612,9 +1613,10 @@ def graph_plate_discipline(df, batter, ma_term=0):
     
     
 def graph_batting_result(df, batter, ma_term=0):
-    datesFmt = mdates.DateFormatter('%-m-%d')
+    datesFmt = mdates.DateFormatter('%m-%d')
     
-    df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
+    if df.game_date.dtype == np.int64:
+        df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
     df = df.assign(pa=np.where(df.pa_result != 'None', 1, 0))
     df = df.assign(ab=np.where(df.pa_result.isin(['1루타', '내야안타', '안타', '2루타', '3루타', '홈런', '희생번트 야수선택',
