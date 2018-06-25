@@ -18,6 +18,8 @@ import os
 from enum import Enum
 import numbers
 from scipy.ndimage.filters import gaussian_filter
+import ipywidgets as widgets
+from IPython.display import clear_output
 
 import importlib
 if importlib.util.find_spec('pygam') is not None:
@@ -1402,7 +1404,7 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
             print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(r[0], r[1], r[2], r[3], r[2]+r[3], (r[2]+r[3])/r[1]*2000))
             
             
-def graph_plate_discipline(df, batter, ma_term=0):
+def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, True, True, True]):
     datesFmt = mdates.DateFormatter('%m-%d')
     
     if df.game_date.dtype == np.int64:
@@ -1448,17 +1450,12 @@ def graph_plate_discipline(df, batter, ma_term=0):
     tab = tab.fillna(0)
     result_sum = []
     
+    raw_num_sum = iz_raw_num_sum = oz_raw_num_sum = 0
+    swing_sum = iz_swing_sum = oz_swing_sum = 0
+    miss_sum = iz_miss_sum = oz_miss_sum = 0
+    
+    fig, a1 = plt.subplots(figsize=(3, 3), dpi=144, facecolor='white')
     if (ma_term <= 1) or (ma_term >= len(tab.index)):
-        raw_num_sum = 0
-        swing_sum = 0
-        miss_sum = 0
-        iz_raw_num_sum = 0
-        iz_swing_sum = 0
-        iz_miss_sum = 0
-        oz_raw_num_sum = 0
-        oz_swing_sum = 0
-        oz_miss_sum = 0
-
         for i in tab.index:
             raw_num_sum += tab.loc[i].raw_num
             swing_sum += tab.loc[i].swing
@@ -1479,66 +1476,8 @@ def graph_plate_discipline(df, batter, ma_term=0):
                                oz_swing_sum/oz_raw_num_sum*100,
                                (1-oz_miss_sum/oz_swing_sum)*100])
             
-        rs = np.array(result_sum)
-            
-        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
-        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=16)
-
-        #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
-        a1 = fig.add_subplot(231)
-        a1.plot(tab.index, rs[:, 0])
-        a1.xaxis.set_major_formatter(datesFmt)
-        a1.grid(True)
-        a1.set_xlabel('date', fontsize=12)
-        a1.set_ylabel('swing%', fontsize=12)
-
-        a2 = fig.add_subplot(232)
-        a2.plot(tab.index, rs[:, 1])
-        a2.xaxis.set_major_formatter(datesFmt)
-        a2.grid(True)
-        a2.set_xlabel('date', fontsize=12)
-        a2.set_ylabel('contact%', fontsize=12)
-
-        a3 = fig.add_subplot(233)
-        a3.plot(tab.index, rs[:, 2])
-        a3.xaxis.set_major_formatter(datesFmt)
-        a3.grid(True)
-        a3.set_xlabel('date', fontsize=12)
-        a3.set_ylabel('iz-swing%', fontsize=12)
-
-        a4 = fig.add_subplot(234)
-        a4.plot(tab.index, rs[:, 3])
-        a4.xaxis.set_major_formatter(datesFmt)
-        a4.grid(True)
-        a4.set_xlabel('date', fontsize=12)
-        a4.set_ylabel('iz-con%', fontsize=12)
-
-        a5 = fig.add_subplot(235)
-        a5.plot(tab.index, rs[:, 4])
-        a5.xaxis.set_major_formatter(datesFmt)
-        a5.grid(True)
-        a5.set_xlabel('date', fontsize=12)
-        a5.set_ylabel('oz-swing%', fontsize=12)
-
-        a6 = fig.add_subplot(236)
-        a6.plot(tab.index, rs[:, 5])
-        a6.xaxis.set_major_formatter(datesFmt)
-        a6.grid(True)
-        a6.set_xlabel('date', fontsize=12)
-        a6.set_ylabel('oz-con%', fontsize=12)
-
-        return fig
+        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=10)
     else:
-        raw_num_sum = 0
-        swing_sum = 0
-        miss_sum = 0
-        iz_raw_num_sum = 0
-        iz_swing_sum = 0
-        iz_miss_sum = 0
-        oz_raw_num_sum = 0
-        oz_swing_sum = 0
-        oz_miss_sum = 0
-        
         term = ma_term - 1
 
         for i in range(0, len(tab.index) - term):
@@ -1560,59 +1499,132 @@ def graph_plate_discipline(df, batter, ma_term=0):
                                (1-iz_miss_sum/iz_swing_sum)*100,
                                oz_swing_sum/oz_raw_num_sum*100,
                                (1-oz_miss_sum/oz_swing_sum)*100])
-    
-        rs = np.array(result_sum)
-    
-        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
-        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average', fontsize=16)
+            
+        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average')
 
-        #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
-        a1 = fig.add_subplot(231)
-        a1.plot(tab.index[term:], rs[:, 0])
+    rs = np.array(result_sum)
+
+    a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%d%%'))
+
+    min_y = 0
+    max_y = 0
+    a2 = a3 = a4 = a5 = a6 = None
+
+    #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+    
+    if options[0] is True:
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a1.plot(tab.index, rs[:, 0], label='Swing%', color='k')
+        else:
+            a1.plot(tab.index[term:], rs[:, 0], label='Swing%', color='k')
         a1.xaxis.set_major_formatter(datesFmt)
         a1.grid(True)
-        a1.set_xlabel('date', fontsize=12)
-        a1.set_ylabel('swing%', fontsize=12)
-
-        a2 = fig.add_subplot(234)
-        a2.plot(tab.index[term:], rs[:, 1])
+        a1.set_yticks([])
+        max_y = max(max_y, rs[:, 0].max())
+        min_y = max(min_y, rs[:, 0].min())
+    
+    if options[1] is True:
+        a2 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a2.plot(tab.index, rs[:, 1], label='Contact%', color='r')
+        else:
+            a2.plot(tab.index[term:], rs[:, 1], label='Contact%', color='r')
         a2.xaxis.set_major_formatter(datesFmt)
         a2.grid(True)
-        a2.set_xlabel('date', fontsize=12)
-        a2.set_ylabel('contact%', fontsize=12)
+        a2.set_yticks([])
+        if max_y < rs[:, 1].max():
+            max_y = rs[:, 1].max()
+        if min_y > rs[:, 1].min():
+            min_y = rs[:, 1].min()
 
-        a3 = fig.add_subplot(232)
-        a3.plot(tab.index[term:], rs[:, 2])
+    if options[2] is True:
+        a3 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a3.plot(tab.index, rs[:, 2], label='Z-Swing%', color='g')
+        else:
+            a3.plot(tab.index[term:], rs[:, 2], label='Z-Swing%', color='g')
         a3.xaxis.set_major_formatter(datesFmt)
         a3.grid(True)
-        a3.set_xlabel('date', fontsize=12)
-        a3.set_ylabel('iz-swing%', fontsize=12)
-
-        a4 = fig.add_subplot(235)
-        a4.plot(tab.index[term:], rs[:, 3])
+        a3.set_yticks([])
+        if max_y < rs[:, 2].max():
+            max_y = rs[:, 2].max()
+        if min_y > rs[:, 2].min():
+            min_y = rs[:, 2].min()
+    
+    if options[3] is True:
+        a4 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a4.plot(tab.index, rs[:, 3], label='Z-Contact%', color='b')
+        else:
+            a4.plot(tab.index[term:], rs[:, 3], label='Z-Contact%', color='b')
         a4.xaxis.set_major_formatter(datesFmt)
         a4.grid(True)
-        a4.set_xlabel('date', fontsize=12)
-        a4.set_ylabel('iz-con%', fontsize=12)
-
-        a5 = fig.add_subplot(233)
-        a5.plot(tab.index[term:], rs[:, 4])
+        a4.set_yticks([])
+        if max_y < rs[:, 3].max():
+            max_y = rs[:, 3].max()
+        if min_y > rs[:, 3].min():
+            min_y = rs[:, 3].min()
+    
+    if options[4] is True:
+        a5 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a5.plot(tab.index, rs[:, 4], label='O-Swing%', color='y')
+        else:
+            a5.plot(tab.index[term:], rs[:, 4], label='O-Swing%', color='y')
         a5.xaxis.set_major_formatter(datesFmt)
         a5.grid(True)
-        a5.set_xlabel('date', fontsize=12)
-        a5.set_ylabel('oz-swing%', fontsize=12)
-
-        a6 = fig.add_subplot(236)
-        a6.plot(tab.index[term:], rs[:, 5])
+        a5.set_yticks([])
+        if max_y < rs[:, 4].max():
+            max_y = rs[:, 4].max()
+        if min_y > rs[:, 4].min():
+            min_y = rs[:, 4].min()
+    
+    if options[5] is True:
+        a6 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a6.plot(tab.index, rs[:, 5], label='O-Contact%', color='purple')
+        else:
+            a6.plot(tab.index[term:], rs[:, 5], label='O-Contact%', color='purple')
         a6.xaxis.set_major_formatter(datesFmt)
         a6.grid(True)
-        a6.set_xlabel('date', fontsize=12)
-        a6.set_ylabel('oz-con%', fontsize=12)
+        a6.set_yticks([])
+        if max_y < rs[:, 5].max():
+            max_y = rs[:, 5].max()
+        if min_y > rs[:, 5].min():
+            min_y = rs[:, 5].min()
+    
+    a1.set_ylim([max(0, min_y-5), max_y+5])
+    a1.set_ylabel('')
+    if a2 is not None:
+        a2.set_ylim([max(0, min_y-5), max_y+5])
+        a2.set_ylabel('')
+    if a3 is not None:
+        a3.set_ylim([max(0, min_y-5), max_y+5])
+        a3.set_ylabel('')
+    if a4 is not None:
+        a4.set_ylim([max(0, min_y-5), max_y+5])
+        a4.set_ylabel('')
+    if a5 is not None:
+        a5.set_ylim([max(0, min_y-5), max_y+5])
+        a5.set_ylabel('')
+    if a6 is not None:
+        a6.set_ylim([max(0, min_y-5), max_y+5])
+        a6.set_ylabel('')
+    
+    fig.legend(loc='lower center',
+               ncol=min(np.array(options).sum(), 3),
+               fontsize='xx-small',
+               bbox_to_anchor=(0.5, -0.01))
 
-        return fig
+    a1.yaxis.set_major_locator(ticker.MultipleLocator(5))
+    a1.yaxis.set_minor_locator(ticker.MultipleLocator(1))
+    a1.grid(True)
+    a1.tick_params(labelsize='x-small')
+
+    return fig
     
     
-def graph_batting_result(df, batter, ma_term=0):
+def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True, True]):
     datesFmt = mdates.DateFormatter('%m-%d')
     
     if df.game_date.dtype == np.int64:
@@ -1648,12 +1660,13 @@ def graph_batting_result(df, batter, ma_term=0):
     tab = tab.fillna(0)
     result_sum = []
     
-    if (ma_term <= 1) or (ma_term >= len(tab.index)):
-        hit_sum = tb_sum = 0
-        ab_sum = pa_sum = 0
-        hr_sum = sh_sum = sf_sum = 0
-        so_sum = bb_sum = hbp_sum = 0
+    hit_sum = tb_sum = 0
+    ab_sum = pa_sum = 0
+    hr_sum = sh_sum = sf_sum = 0
+    so_sum = bb_sum = hbp_sum = 0
 
+    fig, a1 = plt.subplots(figsize=(3, 3), dpi=144, facecolor='white')
+    if (ma_term <= 1) or (ma_term >= len(tab.index)):
         for i in tab.index:
             hit_sum += tab.loc[i].hit
             tb_sum += tab.loc[i].tb
@@ -1675,60 +1688,8 @@ def graph_batting_result(df, batter, ma_term=0):
                                (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
                               ])
             
-        rs = np.array(result_sum)
-            
-        fig = plt.figure(figsize=(18,8), dpi=72, facecolor='white')
-        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=16)
-
-        a1 = fig.add_subplot(231)
-        a1.plot(tab.index.get_values(), rs[:, 0])
-        a1.xaxis.set_major_formatter(datesFmt)
-        a1.grid(True)
-        a1.set_xlabel('date', fontsize=12)
-        a1.set_ylabel('AVG', fontsize=12)
-
-        a2 = fig.add_subplot(232)
-        a2.plot(tab.index, rs[:, 1])
-        a2.xaxis.set_major_formatter(datesFmt)
-        a2.grid(True)
-        a2.set_xlabel('date', fontsize=12)
-        a2.set_ylabel('OBP', fontsize=12)
-
-        a3 = fig.add_subplot(233)
-        a3.plot(tab.index, rs[:, 2])
-        a3.xaxis.set_major_formatter(datesFmt)
-        a3.grid(True)
-        a3.set_xlabel('date', fontsize=12)
-        a3.set_ylabel('SLG', fontsize=12)
-
-        a4 = fig.add_subplot(234)
-        a4.plot(tab.index, rs[:, 3])
-        a4.xaxis.set_major_formatter(datesFmt)
-        a4.grid(True)
-        a4.set_xlabel('date', fontsize=12)
-        a4.set_ylabel('OPS', fontsize=12)
-
-        a5 = fig.add_subplot(235)
-        a5.plot(tab.index, rs[:, 4])
-        a5.xaxis.set_major_formatter(datesFmt)
-        a5.grid(True)
-        a5.set_xlabel('date', fontsize=12)
-        a5.set_ylabel('BABIP', fontsize=12)
-        
-        a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a4.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a5.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        
-        return fig
-
+        fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=10)
     else:
-        hit_sum = tb_sum = 0
-        ab_sum = pa_sum = 0
-        hr_sum = sh_sum = sf_sum = 0
-        so_sum = bb_sum = hbp_sum = 0
-        
         term = ma_term - 1
 
         for i in range(0, len(tab.index) - term):
@@ -1752,50 +1713,210 @@ def graph_batting_result(df, batter, ma_term=0):
                                (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
                               ])
             
-        rs = np.array(result_sum)
-            
-        fig = plt.figure(figsize=(18, 8), dpi=72, facecolor='white')
-        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average', fontsize=16)
+        fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average')
 
-        a1 = fig.add_subplot(231)
-        a1.plot(tab.index[term:], rs[:, 0])
+    rs = np.array(result_sum)
+
+    a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+
+    min_y = 0
+    max_y = 0
+    a2 = a3 = a4 = a5 = None
+
+    if options[0] is True:
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a1.plot(tab.index, rs[:, 0], label='AVG', color='k')
+        else:
+            a1.plot(tab.index[term:], rs[:, 0], label='AVG', color='k')
         a1.xaxis.set_major_formatter(datesFmt)
         a1.grid(True)
-        a1.set_xlabel('date', fontsize=12)
-        a1.set_ylabel('AVG', fontsize=12)
+        a1.set_yticks([])
+        max_y = max(max_y, rs[:, 0].max())
+        min_y = max(min_y, rs[:, 0].min())
 
-        a2 = fig.add_subplot(232)
-        a2.plot(tab.index[term:], rs[:, 1])
+    if options[1] is True:
+        a2 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a2.plot(tab.index, rs[:, 1], label='OBP', color='r')
+        else:
+            a2.plot(tab.index[term:], rs[:, 1], label='OBP', color='r')
         a2.xaxis.set_major_formatter(datesFmt)
         a2.grid(True)
-        a2.set_xlabel('date', fontsize=12)
-        a2.set_ylabel('OBP', fontsize=12)
+        a2.set_yticks([])
+        if max_y < rs[:, 1].max():
+            max_y = rs[:, 1].max()
+        if min_y > rs[:, 1].min():
+            min_y = rs[:, 1].min()
 
-        a3 = fig.add_subplot(233)
-        a3.plot(tab.index[term:], rs[:, 2])
+    if options[2] is True:
+        a3 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a3.plot(tab.index, rs[:, 2], label='SLG', color='g')
+        else:
+            a3.plot(tab.index[term:], rs[:, 2], label='SLG', color='g')
         a3.xaxis.set_major_formatter(datesFmt)
         a3.grid(True)
-        a3.set_xlabel('date', fontsize=12)
-        a3.set_ylabel('SLG', fontsize=12)
+        a3.set_yticks([])
+        if max_y < rs[:, 2].max():
+            max_y = rs[:, 2].max()
+        if min_y > rs[:, 2].min():
+            min_y = rs[:, 2].min()
 
-        a4 = fig.add_subplot(234)
-        a4.plot(tab.index[term:], rs[:, 3])
+    if options[3] is True:
+        a4 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a4.plot(tab.index, rs[:, 3], label='OPS', color='b')
+        else:
+            a4.plot(tab.index[term:], rs[:, 3], label='OPS', color='b')
         a4.xaxis.set_major_formatter(datesFmt)
         a4.grid(True)
-        a4.set_xlabel('date', fontsize=12)
-        a4.set_ylabel('OPS', fontsize=12)
+        a4.set_yticks([])
+        if max_y < rs[:, 3].max():
+            max_y = rs[:, 3].max()
+        if min_y > rs[:, 3].min():
+            min_y = rs[:, 3].min()
 
-        a5 = fig.add_subplot(235)
-        a5.plot(tab.index[term:], rs[:, 4])
+    if options[4] is True:
+        a5 = a1.twinx()
+        if (ma_term <= 1) or (ma_term >= len(tab.index)):
+            a5.plot(tab.index, rs[:, 4], label='BABIP', color='y')
+        else:
+            a5.plot(tab.index[term:], rs[:, 4], label='BABIP', color='y')
         a5.xaxis.set_major_formatter(datesFmt)
         a5.grid(True)
-        a5.set_xlabel('date', fontsize=12)
-        a5.set_ylabel('BABIP', fontsize=12)
+        a5.set_yticks([])
+        if max_y < rs[:, 4].max():
+            max_y = rs[:, 4].max()
+        if min_y > rs[:, 4].min():
+            min_y = rs[:, 4].min()
+
+    a1.set_ylim([max(0, min_y-0.025), max_y+0.025])
+    a1.set_ylabel('')
+    if a2 is not None:
+        a2.set_ylim([max(0, min_y-0.025), max_y+0.025])
+        a2.set_ylabel('')
+    if a3 is not None:
+        a3.set_ylim([max(0, min_y-0.025), max_y+0.025])
+        a3.set_ylabel('')
+    if a4 is not None:
+        a4.set_ylim([max(0, min_y-0.025), max_y+0.025])
+        a4.set_ylabel('')
+    if a5 is not None:
+        a5.set_ylim([max(0, min_y-0.025), max_y+0.025])
+        a5.set_ylabel('')
         
-        a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a2.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a4.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
-        a5.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+    fig.legend(loc='lower center', ncol=np.array(options).sum(), fontsize='xx-small', bbox_to_anchor=(0.5, -0.005))
+
+    a1.yaxis.set_major_locator(ticker.MultipleLocator(0.05))
+    a1.yaxis.set_minor_locator(ticker.MultipleLocator(0.01))
+    a1.grid(True)
+    a1.tick_params(labelsize='x-small')
+
+    return fig
+
+
+def interactive_batting_graph(df):
+    batters = df.batter.drop_duplicates().get_values().tolist()
+    batters.sort()
+    batter = batters[0]
+    term= df.game_date.drop_duplicates().shape[0]
+
+    batterSelect = widgets.Dropdown(
+        options=batters,
+        index=0,
+        description='Batter:'
+    )
+
+    termSelectSlider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=df.game_date.drop_duplicates().shape[0],
+        step=1,
+        description='Term:',
+        continuous_update=True
+    )
+    
+    words = ['AVG', 'OBP', 'SLG', 'OPS', 'BABIP']
+    items = [widgets.ToggleButton(description=w, value=True) for w in words]
+    statSelectButton = widgets.HBox(items)
+    
+    options = [True, True, True, True, True]
+
+    interactive_batting_graph.fig = graph_batting_result(df, batterSelect.value, termSelectSlider.value)
+    
+    updateButton = widgets.Button(
+        disabled=False,
+        description='Update',
+        icon='check'
+    )
+    
+    def onClickUpdateButton(b):
+        clear_output()
+        display(batterSelect, termSelectSlider, statSelectButton, updateButton)
         
-        return fig
+        options = [it.value for it in items]
+        
+        interactive_batting_graph.fig = graph_batting_result(df, batterSelect.value, termSelectSlider.value, options)
+        display(interactive_batting_graph.fig)
+        plt.close(interactive_batting_graph.fig)
+
+    updateButton.on_click(onClickUpdateButton)
+
+    display(batterSelect, termSelectSlider, statSelectButton, updateButton)
+    display(interactive_batting_graph.fig)
+    plt.close(interactive_batting_graph.fig)
+
+    
+def interactive_discipline_graph(df):
+    batters = df.batter.drop_duplicates().get_values().tolist()
+    batters.sort()
+    batter = batters[0]
+    term= df.game_date.drop_duplicates().shape[0]
+
+    batterSelect = widgets.Dropdown(
+        options=batters,
+        index=0,
+        description='Batter:'
+    )
+
+    termSelectSlider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=df.game_date.drop_duplicates().shape[0],
+        step=1,
+        description='Term:',
+        continuous_update=True
+    )
+    
+    words = ['Swing%', 'Contact%', 'Z-Swing%', 'Z-Contact%', 'O-Swing%', 'O-Contact%']
+    
+    items = [widgets.ToggleButton(description=w, value=True) for w in words]
+    box1 = widgets.HBox([items[0], items[2], items[4]])
+    box2 = widgets.HBox([items[1], items[3], items[5]])
+    statSelectButton = widgets.VBox([box1, box2])
+    
+    options = [True, True, True, True, True, True]
+
+    interactive_discipline_graph.fig = graph_plate_discipline(df, batterSelect.value, termSelectSlider.value)
+    
+    updateButton = widgets.Button(
+        disabled=False,
+        description='Update',
+        icon='check'
+    )
+    
+    def onClickUpdateButton(b):
+        clear_output()
+        display(batterSelect, termSelectSlider, statSelectButton, updateButton)
+        
+        options = [it.value for it in items]
+        
+        interactive_discipline_graph.fig = graph_plate_discipline(df, batterSelect.value, termSelectSlider.value, options)
+        display(interactive_discipline_graph.fig)
+        plt.close(interactive_discipline_graph.fig)
+
+    updateButton.on_click(onClickUpdateButton)
+
+    display(batterSelect, termSelectSlider, statSelectButton, updateButton)
+    display(interactive_discipline_graph.fig)
+    plt.close(interactive_discipline_graph.fig)
