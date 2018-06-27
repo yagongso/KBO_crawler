@@ -1470,7 +1470,7 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
             
             result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/raw_num_sum)*100,
+                               (1-miss_sum/swing_sum)*100,
                                iz_swing_sum/iz_raw_num_sum*100,
                                (1-iz_miss_sum/iz_swing_sum)*100,
                                oz_swing_sum/oz_raw_num_sum*100,
@@ -1494,7 +1494,7 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
             
             result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/raw_num_sum)*100,
+                               (1-miss_sum/swing_sum)*100,
                                iz_swing_sum/iz_raw_num_sum*100,
                                (1-iz_miss_sum/iz_swing_sum)*100,
                                oz_swing_sum/oz_raw_num_sum*100,
