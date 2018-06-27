@@ -1,0 +1,523 @@
+--- pbp_data/2018/5/20180527LGKT02018_relay.json	2018-06-03 19:29:46.000000000 +0900
++++ pbp_data/2018/5/20180527LGKT02018_relay.json	2018-06-03 19:30:41.000000000 +0900
+@@ -19039,6 +19039,139 @@
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
++                        "batter": "74823",
++                        "homeBallFour": "2",
++                        "strike": "0",
++                        "awayError": "0",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "7",
++                        "base2": "0",
++                        "awayScore": "6",
++                        "homeHit": "10",
++                        "awayHit": "11",
++                        "pitcher": "65056",
++                        "homeError": "0"
++                    },
++                    "seqno": "411",
++                    "batterRecord": {
++                        "bb": 0,
++                        "ab": 0,
++                        "posName": "대타",
++                        "seqno": 2,
++                        "batOrder": 8,
++                        "seasonHra": 0.273,
++                        "birth": "19850717",
++                        "weight": "86.0",
++                        "run": 0,
++                        "hr": 0,
++                        "psHra": 0.0,
++                        "vsHra": "0.000",
++                        "backnum": "24",
++                        "hit": 0,
++                        "hitType": "좌투좌타",
++                        "pos": 10,
++                        "pCode": "74823",
++                        "hbp": 0,
++                        "name": "임훈",
++                        "rbi": 0,
++                        "todayHra": 0.0,
++                        "so": 0,
++                        "height": "186.0"
++                    },
++                    "text": "9번타자 임훈",
++                    "type": 8,
++                    "stuff": ""
++                },
++                {
++                    "pitchNum": 1,
++                    "currentGameState": {
++                        "awayBallFour": "3",
++                        "homeScore": "8",
++                        "batter": "74823",
++                        "homeBallFour": "2",
++                        "strike": "0",
++                        "awayError": "0",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "7",
++                        "base2": "0",
++                        "awayScore": "6",
++                        "homeHit": "10",
++                        "awayHit": "11",
++                        "pitcher": "65056",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "B",
++                    "seqno": "412",
++                    "text": "1구 볼",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 2,
++                    "currentGameState": {
++                        "awayBallFour": "3",
++                        "homeScore": "8",
++                        "batter": "74823",
++                        "homeBallFour": "2",
++                        "strike": "0",
++                        "awayError": "0",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "7",
++                        "base2": "0",
++                        "awayScore": "6",
++                        "homeHit": "10",
++                        "awayHit": "11",
++                        "pitcher": "65056",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "H",
++                    "seqno": "413",
++                    "text": "2구 타격",
++                    "type": 1
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "3",
++                        "homeScore": "8",
++                        "batter": "61102",
++                        "homeBallFour": "2",
++                        "strike": "3",
++                        "awayError": "0",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "7",
++                        "base2": "0",
++                        "awayScore": "6",
++                        "homeHit": "10",
++                        "awayHit": "11",
++                        "pitcher": "65056",
++                        "homeError": "0"
++                    },
++                    "seqno": "416",
++                    "text": "임훈 : 포수 파울플라이 아웃 ",
++                    "type": 13,
++                    "stuff": ""
++                }
++            ],
++            "inn": 8,
++            "titleStyle": "8",
++            "homeOrAway": "0",
++            "title": "9번타자 임훈",
++            "lastSyncIndex": 5
++        },
++        "81": {
++            "no": 81,
++            "textOptionList": [
++                {
++                    "currentGameState": {
++                        "awayBallFour": "3",
++                        "homeScore": "8",
+                         "batter": "65109",
+                         "homeBallFour": "2",
+                         "strike": "0",
+@@ -19132,8 +19265,8 @@
+             "title": "9번타자 백승현",
+             "lastSyncIndex": 1
+         },
+-        "81": {
+-            "no": 81,
++        "80": {
++            "no": 80,
+             "textOptionList": [
+                 {
+                     "currentGameState": {
+@@ -19405,14 +19538,14 @@
+             "title": "8번타자 유강남",
+             "lastSyncIndex": 5
+         },
+-        "80": {
+-            "no": 80,
++        "79": {
++            "no": 79,
+             "textOptionList": [
+                 {
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+-                        "batter": "73113",
++                        "batter": "64153",
+                         "homeBallFour": "2",
+                         "strike": "0",
+                         "awayError": "0",
+@@ -19424,47 +19557,46 @@
+                         "awayScore": "6",
+                         "homeHit": "9",
+                         "awayHit": "11",
+-                        "pitcher": "60181",
++                        "pitcher": "64017",
+                         "homeError": "0"
+                     },
+-                    "seqno": "406",
++                    "seqno": "403",
+                     "batterRecord": {
+                         "bb": 0,
+-                        "ab": 2,
+-                        "posName": "2루수",
++                        "ab": 3,
++                        "posName": "3루수",
+                         "seqno": 1,
+-                        "batOrder": 5,
+-                        "seasonHra": 0.285,
+-                        "birth": "19840331",
+-                        "weight": "80.0",
+-                        "run": 3,
+-                        "hr": 2,
++                        "batOrder": 7,
++                        "seasonHra": 0.277,
++                        "birth": "19910715",
++                        "weight": "90.0",
++                        "run": 1,
++                        "hr": 0,
+                         "psHra": 0.0,
+-                        "vsHra": "0.308",
+-                        "backnum": "6",
+-                        "hit": 2,
++                        "vsHra": "0.000",
++                        "backnum": "53",
++                        "hit": 1,
+                         "hitType": "우투우타",
+-                        "pos": 4,
+-                        "pCode": "73113",
+-                        "hbp": 1,
+-                        "name": "박경수",
+-                        "rbi": 2,
+-                        "todayHra": 1.0,
++                        "pos": 5,
++                        "pCode": "64153",
++                        "hbp": 0,
++                        "name": "양석환",
++                        "rbi": 0,
++                        "todayHra": 0.333,
+                         "so": 0,
+-                        "height": "178.0"
++                        "height": "185.0"
+                     },
+-                    "text": "8회말 KT 공격",
+-                    "type": 0,
++                    "text": "7번타자 양석환",
++                    "type": 8,
+                     "stuff": ""
+                 },
+                 {
+-                    "pitchNum": 1,
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+                         "batter": "64153",
+                         "homeBallFour": "2",
+-                        "strike": "1",
++                        "strike": "0",
+                         "awayError": "0",
+                         "out": "0",
+                         "base3": "0",
+@@ -19477,26 +19609,37 @@
+                         "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "pitchResult": "T",
+-                    "seqno": "407",
+-                    "ptsPitchId": "-1",
+-                    "text": "1구 스트라이크",
+-                    "type": 1,
+-                    "speed": "0",
++                    "seqno": "404",
++                    "playerChange": {
++                        "outPlayer": {
++                            "playerName": "심재민",
++                            "playerPos": "투수",
++                            "playerId": "64017"
++                        },
++                        "liveText": "투수 심재민 : 투수 엄상백 (으)로 교체",
++                        "inPlayer": {
++                            "outPlayerTurn": 40,
++                            "playerName": "엄상백",
++                            "playerPos": "투수",
++                            "playerId": "65056"
++                        },
++                        "type": "substitution"
++                    },
++                    "text": "투수 심재민 : 투수 엄상백 (으)로 교체",
++                    "type": 2,
+                     "stuff": ""
+                 },
+                 {
+-                    "pitchNum": 2,
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+                         "batter": "64153",
+                         "homeBallFour": "2",
+-                        "strike": "1",
++                        "strike": "0",
+                         "awayError": "0",
+                         "out": "0",
+                         "base3": "0",
+-                        "ball": "1",
++                        "ball": "0",
+                         "base1": "0",
+                         "base2": "0",
+                         "awayScore": "6",
+@@ -19505,16 +19648,24 @@
+                         "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "pitchResult": "B",
+-                    "seqno": "408",
+-                    "ptsPitchId": "-1",
+-                    "text": "2구 볼",
+-                    "type": 1,
+-                    "speed": "0",
++                    "seqno": "405",
++                    "playerChange": {
++                        "shiftMessage": " 우익수(으)로 수비위치 변경",
++                        "shiftPlayer": {
++                            "outPlayerTurn": 13,
++                            "playerName": "김진곤",
++                            "playerPos": "대주자",
++                            "playerId": "63088"
++                        },
++                        "liveText": "대주자 김진곤 : 우익수(으)로 수비위치 변경",
++                        "type": "shift"
++                    },
++                    "text": "대주자 김진곤 : 우익수(으)로 수비위치 변경",
++                    "type": 2,
+                     "stuff": ""
+                 },
+                 {
+-                    "pitchNum": 3,
++                    "pitchNum": 1,
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+@@ -19524,7 +19675,7 @@
+                         "awayError": "0",
+                         "out": "0",
+                         "base3": "0",
+-                        "ball": "1",
++                        "ball": "0",
+                         "base1": "0",
+                         "base2": "0",
+                         "awayScore": "6",
+@@ -19533,15 +19684,16 @@
+                         "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "pitchResult": "H",
+-                    "seqno": "409",
++                    "pitchResult": "T",
++                    "seqno": "407",
+                     "ptsPitchId": "-1",
+-                    "text": "3구 타격",
++                    "text": "1구 스트라이크",
+                     "type": 1,
+                     "speed": "0",
+                     "stuff": ""
+                 },
+                 {
++                    "pitchNum": 2,
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+@@ -19552,90 +19704,34 @@
+                         "out": "0",
+                         "base3": "0",
+                         "ball": "1",
+-                        "base1": "7",
+-                        "base2": "0",
+-                        "awayScore": "6",
+-                        "homeHit": "10",
+-                        "awayHit": "11",
+-                        "pitcher": "65056",
+-                        "homeError": "0"
+-                    },
+-                    "seqno": "410",
+-                    "text": "양석환 : 좌익수 왼쪽 1루타",
+-                    "type": 13,
+-                    "stuff": ""
+-                }
+-            ],
+-            "inn": 8,
+-            "ptsOptionList": [],
+-            "titleStyle": "0",
+-            "homeOrAway": "1",
+-            "title": "8회말 KT 공격",
+-            "lastSyncIndex": 4
+-        },
+-        "79": {
+-            "no": 79,
+-            "textOptionList": [
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "3",
+-                        "homeScore": "8",
+-                        "batter": "64153",
+-                        "homeBallFour": "2",
+-                        "strike": "0",
+-                        "awayError": "0",
+-                        "out": "0",
+-                        "base3": "0",
+-                        "ball": "0",
+                         "base1": "0",
+                         "base2": "0",
+                         "awayScore": "6",
+                         "homeHit": "9",
+                         "awayHit": "11",
+-                        "pitcher": "64017",
++                        "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "seqno": "403",
+-                    "batterRecord": {
+-                        "bb": 0,
+-                        "ab": 3,
+-                        "posName": "3루수",
+-                        "seqno": 1,
+-                        "batOrder": 7,
+-                        "seasonHra": 0.277,
+-                        "birth": "19910715",
+-                        "weight": "90.0",
+-                        "run": 1,
+-                        "hr": 0,
+-                        "psHra": 0.0,
+-                        "vsHra": "0.000",
+-                        "backnum": "53",
+-                        "hit": 1,
+-                        "hitType": "우투우타",
+-                        "pos": 5,
+-                        "pCode": "64153",
+-                        "hbp": 0,
+-                        "name": "양석환",
+-                        "rbi": 0,
+-                        "todayHra": 0.333,
+-                        "so": 0,
+-                        "height": "185.0"
+-                    },
+-                    "text": "7번타자 양석환",
+-                    "type": 8,
++                    "pitchResult": "B",
++                    "seqno": "408",
++                    "ptsPitchId": "-1",
++                    "text": "2구 볼",
++                    "type": 1,
++                    "speed": "0",
+                     "stuff": ""
+                 },
+                 {
++                    "pitchNum": 3,
+                     "currentGameState": {
+                         "awayBallFour": "3",
+                         "homeScore": "8",
+                         "batter": "64153",
+                         "homeBallFour": "2",
+-                        "strike": "0",
++                        "strike": "1",
+                         "awayError": "0",
+                         "out": "0",
+                         "base3": "0",
+-                        "ball": "0",
++                        "ball": "1",
+                         "base1": "0",
+                         "base2": "0",
+                         "awayScore": "6",
+@@ -19644,24 +19740,12 @@
+                         "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "seqno": "404",
+-                    "playerChange": {
+-                        "outPlayer": {
+-                            "playerName": "심재민",
+-                            "playerPos": "투수",
+-                            "playerId": "64017"
+-                        },
+-                        "liveText": "투수 심재민 : 투수 엄상백 (으)로 교체",
+-                        "inPlayer": {
+-                            "outPlayerTurn": 40,
+-                            "playerName": "엄상백",
+-                            "playerPos": "투수",
+-                            "playerId": "65056"
+-                        },
+-                        "type": "substitution"
+-                    },
+-                    "text": "투수 심재민 : 투수 엄상백 (으)로 교체",
+-                    "type": 2,
++                    "pitchResult": "H",
++                    "seqno": "409",
++                    "ptsPitchId": "-1",
++                    "text": "3구 타격",
++                    "type": 1,
++                    "speed": "0",
+                     "stuff": ""
+                 },
+                 {
+@@ -19670,33 +19754,22 @@
+                         "homeScore": "8",
+                         "batter": "64153",
+                         "homeBallFour": "2",
+-                        "strike": "0",
++                        "strike": "1",
+                         "awayError": "0",
+                         "out": "0",
+                         "base3": "0",
+-                        "ball": "0",
+-                        "base1": "0",
++                        "ball": "1",
++                        "base1": "7",
+                         "base2": "0",
+                         "awayScore": "6",
+-                        "homeHit": "9",
++                        "homeHit": "10",
+                         "awayHit": "11",
+                         "pitcher": "65056",
+                         "homeError": "0"
+                     },
+-                    "seqno": "405",
+-                    "playerChange": {
+-                        "shiftMessage": " 우익수(으)로 수비위치 변경",
+-                        "shiftPlayer": {
+-                            "outPlayerTurn": 13,
+-                            "playerName": "김진곤",
+-                            "playerPos": "대주자",
+-                            "playerId": "63088"
+-                        },
+-                        "liveText": "대주자 김진곤 : 우익수(으)로 수비위치 변경",
+-                        "type": "shift"
+-                    },
+-                    "text": "대주자 김진곤 : 우익수(으)로 수비위치 변경",
+-                    "type": 2,
++                    "seqno": "410",
++                    "text": "양석환 : 좌익수 왼쪽 1루타",
++                    "type": 13,
+                     "stuff": ""
+                 }
+             ],
