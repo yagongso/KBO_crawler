@@ -6,7 +6,7 @@ if [[ "$unamestr" == "Darwin" ]]; then
     for f in $FILES
     do
         patch -N -l -p0 --dry-run -s < $f 2>/dev/null
-        if [ $? -eq 0];
+        if [ $? -eq 0 ];
         then
             patch -N -l -p0 < $f
         fi
@@ -16,7 +16,7 @@ else
     for f in $FILES
     do
         patch -N -l -p0 --dry-run -s < $f 2>nul
-        if [ $? -eq 0];
+        if [ $? -eq 0 ];
         then
             patch -N -l -p0 < $f
         fi

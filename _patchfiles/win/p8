@@ -1,0 +1,197 @@
+--- pbp_data/2018/6/20180628SSHH02018_relay.json	2018-07-02 16:52:10.000000000 +0900
++++ pbp_data/2018/6/20180628SSHH02018_relay.json	2018-07-02 17:28:59.000000000 +0900
+@@ -22747,6 +22747,194 @@
+                     "text": "7번타자 박한이",
+                     "type": 8,
+                     "stuff": ""
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "0",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "seqno": "478",
++                    "playerChange": {
++                        "outPlayer": {
++                            "playerName": "장민재",
++                            "playerPos": "투수",
++                            "playerId": "79764"
++                        },
++                        "liveText": "투수 장민재 : 투수 이태양 (으)로 교체",
++                        "inPlayer": {
++                            "outPlayerTurn": 30,
++                            "playerName": "이태양",
++                            "playerPos": "투수",
++                            "playerId": "60768"
++                        },
++                        "type": "substitution"
++                    },
++                    "text": "투수 장민재 : 투수 이태양 (으)로 교체",
++                    "type": 2,
++                    "stuff": ""
++                },
++                {
++                    "pitchNum": 1,
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "0",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "B",
++                    "seqno": "464",
++                    "text": "1구 볼",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 2,
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "1",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "S",
++                    "seqno": "465",
++                    "text": "2구 헛스윙",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 3,
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "2",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "S",
++                    "seqno": "466",
++                    "text": "3구 헛스윙",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 4,
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "2",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "F",
++                    "seqno": "467",
++                    "text": "4구 파울",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 5,
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "3",
++                        "awayError": "3",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "pitchResult": "S",
++                    "seqno": "468",
++                    "text": "5구 헛스윙",
++                    "type": 1
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "7",
++                        "homeScore": "7",
++                        "batter": "71432",
++                        "homeBallFour": "7",
++                        "strike": "3",
++                        "awayError": "3",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "60768",
++                        "homeError": "0"
++                    },
++                    "seqno": "469",
++                    "text": "박한이 : 삼진 아웃 ",
++                    "type": 13,
++                    "stuff": ""
+                 }
+             ],
+             "inn": 8,
