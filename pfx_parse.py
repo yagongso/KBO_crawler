@@ -719,6 +719,14 @@ class BallGame:
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
 
+    # 번트 안타
+    def bunt_hit(self):
+        self.game_status['pa_result'] = '번트 안타'
+        self.runner_change = True
+        self.change_1b = True
+        self.next_1b = self.game_status['batter']
+        self.set_hitter_to_base = True
+
     # 기타 안타
     def other_hit(self):
         self.game_status['pa_result'] = '안타'
@@ -1109,6 +1117,8 @@ def parse_pa_result(text, ball_game):
         ball_game.single()
     elif result.find('내야안타') >= 0:
         ball_game.infield_hit()
+    elif result.find('번트안타') >= 0:
+        ball_game.bunt_hit()
     elif result.find('안타') >= 0:
         ball_game.other_hit()
     elif result.find('2루타') >= 0:
