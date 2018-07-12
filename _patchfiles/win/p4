@@ -1,0 +1,141 @@
+--- pbp_data/2018/5/20180520NCKT02018_relay.json	2018-05-26 21:25:22.000000000 +0900
++++ pbp_data/2018/5/20180520NCKT02018_relay.json	2018-06-03 19:06:46.000000000 +0900
+@@ -22934,138 +22934,6 @@
+             "title": "7번타자 노진혁",
+             "lastSyncIndex": 2
+         },
+-        "100": {
+-            "no": 100,
+-            "textOptionList": [
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "0",
+-                        "homeScore": "18",
+-                        "batter": "62931",
+-                        "homeBallFour": "1",
+-                        "strike": "0",
+-                        "awayError": "1",
+-                        "out": "0",
+-                        "base3": "0",
+-                        "ball": "0",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "3",
+-                        "homeHit": "25",
+-                        "awayHit": "11",
+-                        "pitcher": "78248",
+-                        "homeError": "1"
+-                    },
+-                    "seqno": "521",
+-                    "batterRecord": {
+-                        "bb": 0,
+-                        "ab": 4,
+-                        "posName": "유격수",
+-                        "seqno": 2,
+-                        "batOrder": 7,
+-                        "seasonHra": 0.282,
+-                        "birth": "19890715",
+-                        "weight": "80.0",
+-                        "run": 0,
+-                        "hr": 0,
+-                        "psHra": 0.0,
+-                        "vsHra": "0.000",
+-                        "backnum": "52",
+-                        "hit": 1,
+-                        "hitType": "우투좌타",
+-                        "pos": 6,
+-                        "pCode": "62931",
+-                        "hbp": 0,
+-                        "name": "노진혁",
+-                        "rbi": 0,
+-                        "todayHra": 0.25,
+-                        "so": 1,
+-                        "height": "184.0"
+-                    },
+-                    "text": "7번타자 노진혁",
+-                    "type": 8,
+-                    "stuff": ""
+-                },
+-                {
+-                    "pitchNum": 1,
+-                    "currentGameState": {
+-                        "awayBallFour": "0",
+-                        "homeScore": "18",
+-                        "batter": "62931",
+-                        "homeBallFour": "1",
+-                        "strike": "0",
+-                        "awayError": "1",
+-                        "out": "0",
+-                        "base3": "0",
+-                        "ball": "0",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "3",
+-                        "homeHit": "25",
+-                        "awayHit": "11",
+-                        "pitcher": "78248",
+-                        "homeError": "1"
+-                    },
+-                    "pitchResult": "H",
+-                    "seqno": "522",
+-                    "ptsPitchId": "180520_170152",
+-                    "text": "1구 타격",
+-                    "type": 1,
+-                    "speed": "139",
+-                    "stuff": "직구"
+-                },
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "0",
+-                        "homeScore": "18",
+-                        "batter": "62931",
+-                        "homeBallFour": "1",
+-                        "strike": "0",
+-                        "awayError": "1",
+-                        "out": "1",
+-                        "base3": "0",
+-                        "ball": "0",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "3",
+-                        "homeHit": "25",
+-                        "awayHit": "11",
+-                        "pitcher": "78248",
+-                        "homeError": "1"
+-                    },
+-                    "seqno": "523",
+-                    "text": "노진혁 : 2루수 땅볼 아웃 (2루수->1루수 송구아웃)",
+-                    "type": 13,
+-                    "stuff": ""
+-                }
+-            ],
+-            "inn": 9,
+-            "ptsOptionList": [
+-                {
+-                    "inn": 9,
+-                    "ballcount": 1,
+-                    "crossPlateX": -0.536508,
+-                    "topSz": 3.53495,
+-                    "crossPlateY": 1.4167,
+-                    "pitchId": "180520_170152",
+-                    "vy0": -123.264,
+-                    "vz0": 3.95924,
+-                    "vx0": 7.76296,
+-                    "z0": 3.62431,
+-                    "y0": 50.0,
+-                    "ax": -12.2315,
+-                    "x0": -2.68888,
+-                    "ay": 22.0816,
+-                    "az": -32.3694,
+-                    "bottomSz": 1.77208,
+-                    "stance": "L"
+-                }
+-            ],
+-            "titleStyle": "8",
+-            "homeOrAway": "0",
+-            "title": "7번타자 노진혁",
+-            "lastSyncIndex": 2
+-        },
+         "99": {
+             "no": 99,
+             "textOptionList": [

@@ -1506,8 +1506,8 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
 
     a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%d%%'))
 
-    min_y = 0
-    max_y = 0
+    min_y = 10000
+    max_y = -10000
     a2 = a3 = a4 = a5 = a6 = None
 
     #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
@@ -1521,14 +1521,14 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
         a1.grid(True)
         a1.set_yticks([])
         max_y = max(max_y, rs[:, 0].max())
-        min_y = max(min_y, rs[:, 0].min())
+        min_y = min(min_y, rs[:, 0].min())
     
     if options[1] is True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a2.plot(tab.index, rs[:, 1], label='Contact%', color='r')
+            a2.plot(tab.index, rs[:, 1], label='Contact%', color='dimgrey', linestyle='--')
         else:
-            a2.plot(tab.index[term:], rs[:, 1], label='Contact%', color='r')
+            a2.plot(tab.index[term:], rs[:, 1], label='Contact%', color='dimgrey', linestyle='--')
         a2.xaxis.set_major_formatter(datesFmt)
         a2.grid(True)
         a2.set_yticks([])
@@ -1540,9 +1540,9 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
     if options[2] is True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a3.plot(tab.index, rs[:, 2], label='Z-Swing%', color='g')
+            a3.plot(tab.index, rs[:, 2], label='Z-Swing%', color='blue')
         else:
-            a3.plot(tab.index[term:], rs[:, 2], label='Z-Swing%', color='g')
+            a3.plot(tab.index[term:], rs[:, 2], label='Z-Swing%', color='blue')
         a3.xaxis.set_major_formatter(datesFmt)
         a3.grid(True)
         a3.set_yticks([])
@@ -1554,9 +1554,9 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
     if options[3] is True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a4.plot(tab.index, rs[:, 3], label='Z-Contact%', color='b')
+            a4.plot(tab.index, rs[:, 3], label='Z-Contact%', color='lightskyblue', linestyle='--')
         else:
-            a4.plot(tab.index[term:], rs[:, 3], label='Z-Contact%', color='b')
+            a4.plot(tab.index[term:], rs[:, 3], label='Z-Contact%', color='lightskyblue', linestyle='--')
         a4.xaxis.set_major_formatter(datesFmt)
         a4.grid(True)
         a4.set_yticks([])
@@ -1568,9 +1568,9 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
     if options[4] is True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a5.plot(tab.index, rs[:, 4], label='O-Swing%', color='y')
+            a5.plot(tab.index, rs[:, 4], label='O-Swing%', color='green')
         else:
-            a5.plot(tab.index[term:], rs[:, 4], label='O-Swing%', color='y')
+            a5.plot(tab.index[term:], rs[:, 4], label='O-Swing%', color='green')
         a5.xaxis.set_major_formatter(datesFmt)
         a5.grid(True)
         a5.set_yticks([])
@@ -1582,9 +1582,9 @@ def graph_plate_discipline(df, batter, ma_term=0, options=[True, True, True, Tru
     if options[5] is True:
         a6 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a6.plot(tab.index, rs[:, 5], label='O-Contact%', color='purple')
+            a6.plot(tab.index, rs[:, 5], label='O-Contact%', color='lime', linestyle='--')
         else:
-            a6.plot(tab.index[term:], rs[:, 5], label='O-Contact%', color='purple')
+            a6.plot(tab.index[term:], rs[:, 5], label='O-Contact%', color='lime', linestyle='--')
         a6.xaxis.set_major_formatter(datesFmt)
         a6.grid(True)
         a6.set_yticks([])
@@ -1719,8 +1719,8 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
 
     a1.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
 
-    min_y = 0
-    max_y = 0
+    min_y = 10000
+    max_y = -10000
     a2 = a3 = a4 = a5 = None
 
     if options[0] is True:
@@ -1732,14 +1732,14 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
         a1.grid(True)
         a1.set_yticks([])
         max_y = max(max_y, rs[:, 0].max())
-        min_y = max(min_y, rs[:, 0].min())
+        min_y = min(min_y, rs[:, 0].min())
 
     if options[1] is True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a2.plot(tab.index, rs[:, 1], label='OBP', color='r')
+            a2.plot(tab.index, rs[:, 1], label='OBP', color='blueviolet', linestyle=':', linewidth=2)
         else:
-            a2.plot(tab.index[term:], rs[:, 1], label='OBP', color='r')
+            a2.plot(tab.index[term:], rs[:, 1], label='OBP', color='blueviolet', linestyle=':', linewidth=2)
         a2.xaxis.set_major_formatter(datesFmt)
         a2.grid(True)
         a2.set_yticks([])
@@ -1751,9 +1751,9 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
     if options[2] is True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a3.plot(tab.index, rs[:, 2], label='SLG', color='g')
+            a3.plot(tab.index, rs[:, 2], label='SLG', color='orangered', marker='o', markersize='2.5')
         else:
-            a3.plot(tab.index[term:], rs[:, 2], label='SLG', color='g')
+            a3.plot(tab.index[term:], rs[:, 2], label='SLG', color='orangered', marker='o', markersize='2.5')
         a3.xaxis.set_major_formatter(datesFmt)
         a3.grid(True)
         a3.set_yticks([])
@@ -1765,9 +1765,9 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
     if options[3] is True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a4.plot(tab.index, rs[:, 3], label='OPS', color='b')
+            a4.plot(tab.index, rs[:, 3], label='OPS', color='royalblue')
         else:
-            a4.plot(tab.index[term:], rs[:, 3], label='OPS', color='b')
+            a4.plot(tab.index[term:], rs[:, 3], label='OPS', color='royalblue')
         a4.xaxis.set_major_formatter(datesFmt)
         a4.grid(True)
         a4.set_yticks([])
@@ -1779,9 +1779,9 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
     if options[4] is True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
-            a5.plot(tab.index, rs[:, 4], label='BABIP', color='y')
+            a5.plot(tab.index, rs[:, 4], label='BABIP', color='gold', linestyle='--')
         else:
-            a5.plot(tab.index[term:], rs[:, 4], label='BABIP', color='y')
+            a5.plot(tab.index[term:], rs[:, 4], label='BABIP', color='gold', linestyle='--')
         a5.xaxis.set_major_formatter(datesFmt)
         a5.grid(True)
         a5.set_yticks([])
