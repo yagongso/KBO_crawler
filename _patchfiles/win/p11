@@ -1,0 +1,92 @@
+--- pbp_data/2018/7/20180722HHSS02018_relay.json	2018-07-25 16:31:04.000000000 +0900
++++ pbp_data/2018/7/20180722HHSS02018_relay.json	2018-07-25 17:11:36.000000000 +0900
+@@ -21711,6 +21711,80 @@
+                     "text": "대타 김성훈 : 2루수(으)로 수비위치 변경",
+                     "type": 2,
+                     "stuff": ""
++                },
++                {
++                    "pitchNum": 1,
++                    "currentGameState": {
++                        "awayBallFour": "5",
++                        "homeScore": "4",
++                        "batter": "62700",
++                        "homeBallFour": "5",
++                        "strike": "1",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "4",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "77927",
++                        "homeError": "1"
++                    },
++                    "pitchResult": "F",
++                    "seqno": "459",
++                    "text": "1구 파울",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 2,
++                    "currentGameState": {
++                        "awayBallFour": "5",
++                        "homeScore": "4",
++                        "batter": "62700",
++                        "homeBallFour": "5",
++                        "strike": "1",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "4",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "77927",
++                        "homeError": "1"
++                    },
++                    "pitchResult": "H",
++                    "seqno": "460",
++                    "text": "2구 타격",
++                    "type": 1
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "5",
++                        "homeScore": "4",
++                        "batter": "62700",
++                        "homeBallFour": "5",
++                        "strike": "1",
++                        "awayError": "1",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "4",
++                        "homeHit": "4",
++                        "awayHit": "7",
++                        "pitcher": "77927",
++                        "homeError": "1"
++                    },
++                    "seqno": "461",
++                    "text": "하주석 : 좌익수 플라이 아웃",
++                    "type": 13,
++                    "stuff": ""
+                 }
+             ],
+             "inn": 9,
+@@ -21718,7 +21792,7 @@
+             "titleStyle": "8",
+             "homeOrAway": "0",
+             "title": "9번타자 하주석",
+-            "lastSyncIndex": 2
++            "lastSyncIndex": 5
+         },
+         "83": {
+             "no": 83,

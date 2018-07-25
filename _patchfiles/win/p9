@@ -1,0 +1,172 @@
+--- pbp_data/2018/7/20180718SSHT02018_relay.json	2018-07-25 16:30:47.000000000 +0900
++++ pbp_data/2018/7/20180718SSHT02018_relay.json	2018-07-25 16:46:44.000000000 +0900
+@@ -18702,7 +18702,7 @@
+                     "currentGameState": {
+                         "awayBallFour": "0",
+                         "homeScore": "1",
+-                        "batter": "66462",
++                        "batter": "79402",
+                         "homeBallFour": "3",
+                         "strike": "0",
+                         "awayError": "0",
+@@ -18720,22 +18720,145 @@
+                     "seqno": "387",
+                     "playerChange": {
+                         "outPlayer": {
+-                            "playerName": "김상수",
+-                            "playerPos": "0루주자",
+-                            "playerId": "79402"
++                            "playerName": "최영진",
++                            "playerPos": "1루주자",
++                            "playerId": "61197"
+                         },
+-                        "liveText": "0루주자 김상수 : 대주자 김성훈 (으)로 교체",
++                        "liveText": "1루주자 최영진 : 대주자 김성훈 (으)로 교체",
+                         "inPlayer": {
+-                            "outPlayerTurn": 19,
++                            "outPlayerTurn": 18,
+                             "playerName": "김성훈",
+                             "playerPos": "대주자",
+                             "playerId": "66462"
+                         },
+                         "type": "substitution"
+                     },
+-                    "text": "0루주자 김상수 : 대주자 김성훈 (으)로 교체",
++                    "text": "1루주자 최영진 : 대주자 김성훈 (으)로 교체",
+                     "type": 2,
+                     "stuff": ""
++                },
++                {
++                    "pitchNum": 1,
++                    "currentGameState": {
++                        "awayBallFour": "0",
++                        "homeScore": "1",
++                        "batter": "79402",
++                        "homeBallFour": "3",
++                        "strike": "1",
++                        "awayError": "0",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "0",
++                        "base1": "8",
++                        "base2": "0",
++                        "awayScore": "7",
++                        "homeHit": "3",
++                        "awayHit": "13",
++                        "pitcher": "65618",
++                        "homeError": "3"
++                    },
++                    "pitchResult": "T",
++                    "seqno": "388",
++                    "text": "1구 스트라이크",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 2,
++                    "currentGameState": {
++                        "awayBallFour": "0",
++                        "homeScore": "1",
++                        "batter": "79402",
++                        "homeBallFour": "3",
++                        "strike": "1",
++                        "awayError": "0",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "8",
++                        "base2": "0",
++                        "awayScore": "7",
++                        "homeHit": "3",
++                        "awayHit": "13",
++                        "pitcher": "65618",
++                        "homeError": "3"
++                    },
++                    "pitchResult": "B",
++                    "seqno": "389",
++                    "text": "2구 볼",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 3,
++                    "currentGameState": {
++                        "awayBallFour": "0",
++                        "homeScore": "1",
++                        "batter": "79402",
++                        "homeBallFour": "3",
++                        "strike": "1",
++                        "awayError": "0",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "8",
++                        "base2": "0",
++                        "awayScore": "7",
++                        "homeHit": "3",
++                        "awayHit": "13",
++                        "pitcher": "65618",
++                        "homeError": "3"
++                    },
++                    "pitchResult": "H",
++                    "seqno": "390",
++                    "text": "3구 타격",
++                    "type": 1
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "0",
++                        "homeScore": "1",
++                        "batter": "79402",
++                        "homeBallFour": "3",
++                        "strike": "1",
++                        "awayError": "0",
++                        "out": "2",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "8",
++                        "base2": "0",
++                        "awayScore": "7",
++                        "homeHit": "3",
++                        "awayHit": "13",
++                        "pitcher": "65618",
++                        "homeError": "3"
++                    },
++                    "seqno": "391",
++                    "text": "김상수 : 3루수 병살타 아웃 (3루수->2루수->1루수 송구아웃)",
++                    "type": 13,
++                    "stuff": ""
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "0",
++                        "homeScore": "1",
++                        "batter": "79402",
++                        "homeBallFour": "3",
++                        "strike": "1",
++                        "awayError": "0",
++                        "out": "2",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "0",
++                        "base2": "0",
++                        "awayScore": "7",
++                        "homeHit": "3",
++                        "awayHit": "13",
++                        "pitcher": "65618",
++                        "homeError": "3"
++                    },
++                    "seqno": "392",
++                    "text": "1루주자 김성훈 :  포스아웃 (유격수->2루수 2루 터치아웃)",
++                    "type": 14,
++                    "stuff": ""
+                 }
+             ],
+             "inn": 8,
+@@ -18743,7 +18866,7 @@
+             "titleStyle": "8",
+             "homeOrAway": "0",
+             "title": "9번타자 김상수",
+-            "lastSyncIndex": 1
++            "lastSyncIndex": 6
+         },
+         "78": {
+             "no": 78,

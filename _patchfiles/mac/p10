@@ -1,0 +1,187 @@
+--- pbp_data/2018/7/20180721OBLG02018_relay.json	2018-07-25 16:31:01.000000000 +0900
++++ pbp_data/2018/7/20180721OBLG02018_relay.json	2018-07-25 17:05:16.000000000 +0900
+@@ -24554,155 +24554,51 @@
+                     "stuff": ""
+                 },
+                 {
+-                    "pitchNum": 1,
+                     "currentGameState": {
+                         "awayBallFour": "2",
+-                        "homeScore": "10",
+-                        "batter": "79240",
+-                        "homeBallFour": "5",
+-                        "strike": "0",
+-                        "awayError": "0",
+-                        "out": "1",
+-                        "base3": "9",
+-                        "ball": "1",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "15",
+-                        "homeHit": "12",
+-                        "awayHit": "21",
+-                        "pitcher": "79825",
+-                        "homeError": "4"
+-                    },
+-                    "pitchResult": "B",
+-                    "seqno": "537",
+-                    "ptsPitchId": "180721_212433",
+-                    "text": "1구 볼",
+-                    "type": 1,
+-                    "speed": "125",
+-                    "stuff": "체인지업"
+-                },
+-                {
+-                    "pitchNum": 2,
+-                    "currentGameState": {
+-                        "awayBallFour": "2",
+-                        "homeScore": "10",
+-                        "batter": "79240",
+-                        "homeBallFour": "5",
+-                        "strike": "0",
+-                        "awayError": "0",
+-                        "out": "1",
+-                        "base3": "9",
+-                        "ball": "1",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "15",
+-                        "homeHit": "12",
+-                        "awayHit": "21",
+-                        "pitcher": "79825",
+-                        "homeError": "4"
+-                    },
+-                    "pitchResult": "H",
+-                    "seqno": "538",
+-                    "ptsPitchId": "180721_212449",
+-                    "text": "2구 타격",
+-                    "type": 1,
+-                    "speed": "123",
+-                    "stuff": "체인지업"
+-                },
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "2",
+-                        "homeScore": "10",
+-                        "batter": "79240",
+-                        "homeBallFour": "5",
+-                        "strike": "0",
+-                        "awayError": "0",
+-                        "out": "2",
+-                        "base3": "9",
+-                        "ball": "1",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "15",
+-                        "homeHit": "12",
+-                        "awayHit": "21",
+-                        "pitcher": "79825",
+-                        "homeError": "4"
+-                    },
+-                    "seqno": "539",
+-                    "text": "허경민 : 유격수 땅볼 아웃 (유격수->1루수 송구아웃)",
+-                    "type": 23,
+-                    "stuff": ""
+-                },
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "2",
+-                        "homeScore": "10",
+-                        "batter": "79240",
++                        "homeScore": "8",
++                        "batter": "62164",
+                         "homeBallFour": "5",
+                         "strike": "0",
+                         "awayError": "0",
+                         "out": "2",
+                         "base3": "0",
+-                        "ball": "1",
+-                        "base1": "0",
++                        "ball": "0",
++                        "base1": "8",
+                         "base2": "0",
+-                        "awayScore": "16",
+-                        "homeHit": "12",
+-                        "awayHit": "21",
+-                        "pitcher": "79825",
+-                        "homeError": "4"
++                        "awayScore": "11",
++                        "homeHit": "10",
++                        "awayHit": "16",
++                        "pitcher": "77263",
++                        "homeError": "2"
+                     },
+-                    "seqno": "540",
+-                    "text": "3루주자 양의지 : 홈인",
+-                    "type": 24,
++                    "seqno": "537",
++                    "playerChange": {
++                        "outPlayer": {
++                            "playerName": "허경민",
++                            "playerPos": "1번타자",
++                            "playerId": "79240"
++                        },
++                        "liveText": "1번타자 허경민 : 대타 오재일 (으)로 교체",
++                        "inPlayer": {
++                            "outPlayerTurn": 19,
++                            "playerName": "오재일",
++                            "playerPos": "대타",
++                            "playerId": "75334"
++                        },
++                        "type": "substitution"
++                    },
++                    "text": "1번타자 허경민 : 대타 오재일 (으)로 교체",
++                    "type": 2,
+                     "stuff": ""
+                 }
+             ],
+             "inn": 8,
+-            "ptsOptionList": [
+-                {
+-                    "inn": 8,
+-                    "ballcount": 1,
+-                    "crossPlateX": -0.120942,
+-                    "topSz": 3.77722,
+-                    "crossPlateY": 1.4167,
+-                    "pitchId": "180721_212433",
+-                    "vy0": -115.802,
+-                    "vz0": 0.674282,
+-                    "vx0": 5.31242,
+-                    "z0": 6.20758,
+-                    "y0": 50.0,
+-                    "ax": -6.69418,
+-                    "x0": -1.8066,
+-                    "ay": 22.7227,
+-                    "az": -26.8819,
+-                    "bottomSz": 1.95597,
+-                    "stance": "L"
+-                },
+-                {
+-                    "inn": 8,
+-                    "ballcount": 2,
+-                    "crossPlateX": -0.013819,
+-                    "topSz": 3.77722,
+-                    "crossPlateY": 1.4167,
+-                    "pitchId": "180721_212449",
+-                    "vy0": -114.146,
+-                    "vz0": -2.43532,
+-                    "vx0": 5.92627,
+-                    "z0": 6.06114,
+-                    "y0": 50.0,
+-                    "ax": -8.31113,
+-                    "x0": -1.82444,
+-                    "ay": 20.5963,
+-                    "az": -27.0638,
+-                    "bottomSz": 1.95597,
+-                    "stance": "L"
+-                }
+-            ],
++            "ptsOptionList": [],
+             "titleStyle": "8",
+             "homeOrAway": "0",
+             "title": "1번타자 허경민",
+-            "lastSyncIndex": 4
++            "lastSyncIndex": 1
+         },
+         "99": {
+             "no": 99,
