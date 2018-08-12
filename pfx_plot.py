@@ -100,6 +100,10 @@ def preprocess_data(df):
     return df
 
 
+def plot_strike_calls(df, title=None, show_pitch_number=False, print_std=False):
+    return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number, print_std=print_std)
+
+
 def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, print_std=False):
     set_fonts()
     
@@ -256,7 +260,6 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     if legends is True:
         ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
         
-    #plt.show()
     return fig, ax
 
 
@@ -411,7 +414,6 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     if legends is True:
         ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
         
-    #plt.show()
     return fig, ax
 
     
