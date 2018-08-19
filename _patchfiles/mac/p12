@@ -1,0 +1,93 @@
+--- pbp_data/2018/8/20180807KTNC02018_relay.json	2018-08-12 13:50:28.000000000 +0900
++++ pbp_data/2018/8/20180807KTNC02018_relay.json	2018-08-12 13:59:18.000000000 +0900
+@@ -13602,7 +13602,7 @@
+                     "stuff": ""
+                 },
+                 {
+-                    "pitchNum": 1,
++                    "pitchNum": 2,
+                     "currentGameState": {
+                         "awayBallFour": "0",
+                         "homeScore": "9",
+@@ -13612,7 +13612,7 @@
+                         "awayError": "1",
+                         "out": "1",
+                         "base3": "0",
+-                        "ball": "1",
++                        "ball": "0",
+                         "base1": "0",
+                         "base2": "0",
+                         "awayScore": "3",
+@@ -13621,16 +13621,15 @@
+                         "pitcher": "67066",
+                         "homeError": "0"
+                     },
+-                    "pitchResult": "B",
++                    "pitchResult": "H",
+                     "seqno": "324",
+                     "ptsPitchId": "180807_202504",
+-                    "text": "1구 볼",
++                    "text": "1구 타격",
+                     "type": 1,
+                     "speed": "135",
+                     "stuff": "직구"
+                 },
+                 {
+-                    "pitchNum": 2,
+                     "currentGameState": {
+                         "awayBallFour": "0",
+                         "homeScore": "9",
+@@ -13640,34 +13639,7 @@
+                         "awayError": "1",
+                         "out": "1",
+                         "base3": "0",
+-                        "ball": "1",
+-                        "base1": "0",
+-                        "base2": "0",
+-                        "awayScore": "3",
+-                        "homeHit": "12",
+-                        "awayHit": "4",
+-                        "pitcher": "67066",
+-                        "homeError": "0"
+-                    },
+-                    "pitchResult": "H",
+-                    "seqno": "325",
+-                    "ptsPitchId": "-1",
+-                    "text": "2구 타격",
+-                    "type": 1,
+-                    "speed": "0",
+-                    "stuff": ""
+-                },
+-                {
+-                    "currentGameState": {
+-                        "awayBallFour": "0",
+-                        "homeScore": "9",
+-                        "batter": "62907",
+-                        "homeBallFour": "1",
+-                        "strike": "0",
+-                        "awayError": "1",
+-                        "out": "1",
+-                        "base3": "0",
+-                        "ball": "1",
++                        "ball": "0",
+                         "base1": "0",
+                         "base2": "2",
+                         "awayScore": "3",
+@@ -13677,7 +13649,7 @@
+                         "homeError": "0"
+                     },
+                     "seqno": "326",
+-                    "text": "박민우 : 좌익수 왼쪽 2루타",
++                    "text": "박민우 : 우익수 플라이 아웃",
+                     "type": 13,
+                     "stuff": ""
+                 }
+@@ -13707,7 +13679,7 @@
+             "titleStyle": "8",
+             "homeOrAway": "1",
+             "title": "2번타자 박민우",
+-            "lastSyncIndex": 3
++            "lastSyncIndex": 2
+         },
+         "61": {
+             "no": 61,
