@@ -100,6 +100,10 @@ def preprocess_data(df):
     return df
 
 
+def plot_strike_calls(df, title=None, show_pitch_number=False, print_std=False):
+    return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number, print_std=print_std)
+
+
 def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, print_std=False):
     set_fonts()
     
@@ -256,7 +260,6 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     if legends is True:
         ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
         
-    #plt.show()
     return fig, ax
 
 
@@ -411,7 +414,6 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     if legends is True:
         ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
         
-    #plt.show()
     return fig, ax
 
     
@@ -1374,7 +1376,12 @@ def get_season_framing_cell(df, use_RV=False, min_catch=0):
 
     extras.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
 
-    print('이름\t판정 횟수\t+Str\t-Ball\t+Run\t+Run/2000')
+    print('Framing w/ Cell')
+    if use_RV is True:
+        print('이름\t판정횟수\tExStr\tExBall\tExRun\tExRun/2000')
+    else:
+        print('이름\t판정횟수\tExStr\tExBall\tExCall\tExCall/2000')
+        
     for x in extras:
         if x[1] < min_catch:
             continue
@@ -1382,39 +1389,44 @@ def get_season_framing_cell(df, use_RV=False, min_catch=0):
                                                               (x[2]-x[3])/x[1]*2000))
         
 def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
-    if importlib.util.find_spec('pygam') is not None:
+    if importlib.util.find_spec('pygam') is None:
         return None
     
-    if 'calls' not in df.keys():
+    sub_df = df
+    
+    if sub_df.px.dtypes == np.object:
+        sub_df = clean_data(sub_df)
+        
+    if 'calls' not in sub_df.keys():
         # strike call: 1, ball call: 0
-        df = df.assign(calls=np.where(df.pitch_result=='스트라이크', 1, 0))
+        sub_df = sub_df.assign(calls=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
         
-    if 'stands_cat' not in df.keys():
-        df = df.assign(stands_cat=np.where(df.stands=='양',
-                                           np.where(df.throws=='좌', 1, 0),
-                                           np.where(df.stands=='우', 1, 0)))
+    if 'stands_cat' not in sub_df.keys():
+        sub_df = sub_df.assign(stands_cat=np.where(sub_df.stands=='양',
+                                           np.where(sub_df.throws=='좌', 1, 0),
+                                           np.where(sub_df.stands=='우', 1, 0)))
         
-    if 'venue' not in df.keys():
-        df.stadium = pd.Categorical(df.stadium)
-        df['venue'] = df.stadium.cat.codes
+    if 'venue' not in sub_df.keys():
+        sub_df.stadium = pd.Categorical(sub_df.stadium)
+        sub_df['venue'] = sub_df.stadium.cat.codes
 
     if gam is None:
-        if 'pz_adjusted' not in df.keys():
-            df = df.assign(pz_adjusted=(df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2)
+        if 'pz_adjusted' not in sub_df.keys():
+            sub_df = sub_df.assign(pz_adjusted=(sub_df.pz - (sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2)
 
-        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue']]
-        #X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
-        X = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
-        y = df.loc[df.pitch_result.isin(['스트라이크', '볼'])][['calls']]
+        #X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue']]
+        #X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
+        X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
+        y = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['calls']]
 
         gam = LogisticGAM().fit(X, y)
 
     if use_RV is True:
-        #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
-        sub_df = df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
+        #sub_df = sub_df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
+        sub_df = sub_df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
     else:
-        #sub_df = df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
-        sub_df = df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+        #sub_df = sub_df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+        sub_df = sub_df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
     
     catchers = sub_df.pos_2.drop_duplicates()
 
@@ -1433,7 +1445,10 @@ def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
     results.sort(key=lambda tup:tup[2]+tup[3], reverse=True)
 
     print('Framing w/ GAM')
-    print('이름\t포구기회\tExStr\tExBall\tExCall\tEC/2000')
+    if use_RV is True:
+        print('이름\t판정횟수\tExStr\tExBall\tExRun\tExRun/2000')
+    else:
+        print('이름\t판정횟수\tExStr\tExBall\tExCall\tExCall/2000')
 
     for r in results:
         if r[1] < min_catch:
