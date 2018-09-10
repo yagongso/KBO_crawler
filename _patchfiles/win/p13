@@ -1,0 +1,149 @@
+--- pbp_data/2018/9/20180909HHLG02018_relay.json	2018-09-10 10:18:37.000000000 +0900
++++ pbp_data/2018/9/20180909HHLG02018_relay.json	2018-09-10 12:52:16.000000000 +0900
+@@ -11834,14 +11834,137 @@
+                     "text": "4¹øÅ¸ÀÚ È£À×",
+                     "type": 8,
+                     "stuff": ""
++                },
++                {
++                    "pitchNum": 1,
++                    "currentGameState": {
++                        "awayBallFour": "2",
++                        "homeScore": "2",
++                        "batter": "68730",
++                        "homeBallFour": "4",
++                        "strike": "0",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "3",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "1",
++                        "awayHit": "1",
++                        "pitcher": "76455",
++                        "homeError": "2"
++                    },
++                    "pitchResult": "B",
++                    "seqno": "199",
++                    "text": "1±¸ ÆÄ¿ï",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 2,
++                    "currentGameState": {
++                        "awayBallFour": "2",
++                        "homeScore": "2",
++                        "batter": "68730",
++                        "homeBallFour": "4",
++                        "strike": "1",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "3",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "1",
++                        "awayHit": "1",
++                        "pitcher": "76455",
++                        "homeError": "2"
++                    },
++                    "pitchResult": "T",
++                    "seqno": "200",
++                    "text": "2±¸ ½ºÆ®¶óÀÌÅ©",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 3,
++                    "currentGameState": {
++                        "awayBallFour": "2",
++                        "homeScore": "2",
++                        "batter": "68730",
++                        "homeBallFour": "4",
++                        "strike": "2",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "3",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "1",
++                        "awayHit": "1",
++                        "pitcher": "76455",
++                        "homeError": "2"
++                    },
++                    "pitchResult": "F",
++                    "seqno": "201",
++                    "text": "3±¸ ÆÄ¿ï",
++                    "type": 1
++                },
++                {
++                    "pitchNum": 4,
++                    "currentGameState": {
++                        "awayBallFour": "2",
++                        "homeScore": "2",
++                        "batter": "68730",
++                        "homeBallFour": "4",
++                        "strike": "3",
++                        "awayError": "1",
++                        "out": "0",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "3",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "1",
++                        "awayHit": "1",
++                        "pitcher": "76455",
++                        "homeError": "2"
++                    },
++                    "pitchResult": "S",
++                    "seqno": "202",
++                    "text": "4±¸ Çê½ºÀ®",
++                    "type": 1
++                },
++                {
++                    "currentGameState": {
++                        "awayBallFour": "2",
++                        "homeScore": "2",
++                        "batter": "68730",
++                        "homeBallFour": "4",
++                        "strike": "3",
++                        "awayError": "1",
++                        "out": "1",
++                        "base3": "0",
++                        "ball": "1",
++                        "base1": "3",
++                        "base2": "0",
++                        "awayScore": "1",
++                        "homeHit": "1",
++                        "awayHit": "1",
++                        "pitcher": "76455",
++                        "homeError": "2"
++                    },
++                    "pitchResult": "S",
++                    "seqno": "203",
++                    "text": "È£À× : »ïÁø ¾Æ¿ô",
++                    "type": 13
+                 }
+             ],
+             "inn": 4,
+-            "ptsOptionList": [],
+             "titleStyle": "8",
+             "homeOrAway": "0",
+             "title": "4¹øÅ¸ÀÚ È£À×",
+-            "lastSyncIndex": 0
++            "lastSyncIndex": 6
+         },
+         "32": {
+             "no": 32,
+@@ -24875,4 +24998,4 @@
+     },
+     "referee": "À±»ó¿ø",
+     "stadium": "Àá½Ç"
+-}
+\ No newline at end of file
++}

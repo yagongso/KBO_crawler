@@ -182,6 +182,7 @@ class BallGame:
     set_hitter_to_base = False
     text_row = []
     prev_pid = None
+    made_errors = True
 
     def reset_pfx(self):
         self.game_status['pitch_type'] = None
@@ -277,6 +278,7 @@ class BallGame:
         self.ball_and_not_hbp = False
         self.set_hitter_to_base = False
         self.prev_pid = None
+        self.made_errors = False
 
     def print_row(self):
         row = [str(self.game_status['pitch_type']), str(self.game_status['pitcher']), str(self.game_status['batter']),
@@ -533,6 +535,16 @@ class BallGame:
         #     이럴 때는 이전 타석 결과를 print한다.
         # 그 밖의 경우: 타석 도중 교체
         #     타석 데이터 reset 없이 true만 반환한다.
+        if self.made_errors is True:
+            # 2018/8/12 : 실책 출루인데 포스 아웃으로 기록되는 사례(20180812HTSK0)
+            # 최형우 : 2루수 앞 땅볼로 출루
+            # 1루주자 최형우 : 실책으로 2루까지 진루
+            # 1루주자 이명기 : 2루수 실책으로 2루까지 진루(2루수 실책->유격수)
+            # 2루주자 이명기 : 주자의 재치로 3루까지 진루
+            # 2루주자 버나디나 : 3루까지 진루
+            # 3루주자 버나디나 : 실책으로 홈인
+            if (self.made_outs is False) and (self.game_status['pa_result'] != '실책'):
+                self.game_status['pa_result'] = '실책'
         if self.made_in_play is True:
             self.print_row()
             # self.print_row_debug()
@@ -829,6 +841,7 @@ class BallGame:
         self.change_1b = True
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
+        self.made_errors = True
 
     def fc(self):
         self.game_status['pa_result'] = '야수선택'
@@ -844,6 +857,7 @@ class BallGame:
         self.change_1b = True
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
+        self.made_errors = True
 
     # 희생번트 야수선택
     def sac_hit_fc(self):
@@ -1268,6 +1282,9 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         ball_game.made_outs = False
         ball_game.outs_how_many = 0
 
+    if ball_game.made_errors is True:
+        ball_game.made_errors = False
+
     if ball_game.made_runs is True:
         if ball_game.game_status['inning_top_bot'] is 0:
             ball_game.game_status['score_away'] += ball_game.runs_how_many
@@ -1453,6 +1470,9 @@ def parse_runner(text, ball_game):
             ball_game.game_status['batter']
         )
         return rc
+
+    if result.find('실책') > 0:
+        ball_game.made_errors = True
 
     return True
 
