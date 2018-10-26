@@ -49,7 +49,7 @@ playoff_start = {
     '2015': '1010',
     '2016': '1021',
     '2017': '1010',
-    '2018': '1014' # 시범경기; 임시
+    '2018': '1015' # 시범경기; 임시
 }
 
 teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
@@ -347,6 +347,7 @@ def download_pfx(args, lm=None):
     print("##################################################")
 
     for year in game_ids.keys():
+        start1 = time.time()
         print(" Year {}".format(year))
         if len(game_ids[year]) == 0:
             print('month id is empty')
@@ -362,6 +363,7 @@ def download_pfx(args, lm=None):
         # path: pbp_data/year
 
         for month in game_ids[year].keys():
+            start2 = time.time()
             print("  Month {}".format(month))
             if len(game_ids[year][month]) == 0:
                 print('month id is empty')
@@ -383,10 +385,16 @@ def download_pfx(args, lm=None):
                 if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
                     skipped += 1
                     continue
+                if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
+                    skipped += 1
+                    continue
                 if int(game_id[4:8]) < int(regular_start[game_id[:4]]):
                     skipped += 1
                     continue
                 if int(game_id[4:8]) >= int(playoff_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if game_id[8:10] not in teams:
                     skipped += 1
                     continue
 
@@ -396,7 +404,12 @@ def download_pfx(args, lm=None):
                         lm.log('URL error : {}'.format(pfx_url))
                     continue
 
-                if (os.path.isfile(game_id + '_pfx.json')) and \
+                if (int(game_id[:4]) == datetime.datetime.now().year) &\
+                   (int(game_id[4:6]) == datetime.datetime.now().month) &\
+                   (int(game_id[6:8]) == datetime.datetime.now().day):
+                        # do nothing
+                       done = done
+                elif (os.path.isfile(game_id + '_pfx.json')) and \
                         (os.path.getsize(game_id + '_pfx.json') > 0):
                     done += 1
                     if lm is not None:
@@ -436,7 +449,8 @@ def download_pfx(args, lm=None):
                         continue
 
                     # json to pandas dataframe
-                    df = pd.read_json(json.dumps(js))
+                    #df = pd.read_json(json.dumps(js))
+                    df = pd.DataFrame(js)
 
                     # calculate pitch location(px, pz)
                     t = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - df['crossPlateY']))
@@ -476,11 +490,17 @@ def download_pfx(args, lm=None):
                 print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
 
             # download done
-            print('        Downloaded {} files'.format(done))
+            print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+            print('\n        Downloaded {} files'.format(done))
             print('        (Skipped {} files)'.format(skipped))
+            end2 = time.time()
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
+
 
             os.chdir('..')
             # path: pbp_data/year
+        end1 = time.time()
+        print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
         # months done
         os.chdir('..')
         # path: pbp_data/

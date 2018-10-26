@@ -1768,7 +1768,7 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
     ball_game.set_stadium(js['stadium'])
     ball_game.set_lineup(js)
 
-    rl = js['relayList']
+    relayList = js['relayList']
     home_pitchers = js['homeTeamLineUp']['pitcher']
     away_pitchers = js['awayTeamLineUp']['pitcher']
     home_batters = js['homeTeamLineUp']['batter']
@@ -1777,48 +1777,52 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
     game_over = [False]
     rc = True
 
-    keys = [int(x) for x in sorted(rl.keys())]
+    keys = [int(x) for x in sorted(relayList.keys())]
     keys.sort()
     
     for k in keys:
-        text_set = rl[str(k)]['textOptionList']
+        textOptionList = relayList[str(k)]['textOptionList']
 
-        if text_set[0]['type'] == 99:
+        if textOptionList[0]['type'] == 99:
             # 끝내기인지, 정상적 종료인지 체크해야 한다.
             if ball_game.check_game_over() is not True:
                 ball_game.go_to_next_pa()
                 game_over[0] = True
                 break
 
-        if 'ptsOptionList' in rl[str(k)].keys():
-            pts_set = rl[str(k)]['ptsOptionList']
+        if 'ptsOptionList' in relayList[str(k)].keys():
+            ptsOptionList = relayList[str(k)]['ptsOptionList']
         else:
-            pts_set = []
-        pts_dict = {}
-        if len(pts_set) > 0:
-            for i in range(len(pts_set)):
-                pitch_id = pts_set[i]['pitchId']
-                pts_dict[pitch_id] = pts_set[i]
+            ptsOptionList = []
 
-        for i in range(len(text_set)):
-            text = text_set[i]['text']
-            text_type = text_set[i]['type']
-            pid = text_set[i]['currentGameState']['pitcher']
-            bid = text_set[i]['currentGameState']['batter']
+        pts_dict = {}
+        if len(ptsOptionList) > 0:
+            pts_dict = {x['pitchId']:x for x in ptsOptionList}
+
+        for i in range(len(textOptionList)):
+            text = textOptionList[i]['text']
+            text_type = textOptionList[i]['type']
+            pid = textOptionList[i]['currentGameState']['pitcher']
+            bid = textOptionList[i]['currentGameState']['batter']
 
             pts_data = None
-            if (len(pts_set) > 0) and\
-                    (text_type == 1) and\
-                    (len(text_set[i]['ptsPitchId']) > 2):
-                if text_set[i]['ptsPitchId'] in pts_dict.keys():
-                    pts_data = pts_dict[text_set[i]['ptsPitchId']]
-                    pts_data['speed'] = text_set[i]['speed']
-                    pts_data['stuff'] = text_set[i]['stuff']
+
+            if (len(ptsOptionList) > 0) and\
+                    (text_type == 1):
+                if 'ptsPitchId' in textOptionList[i].keys():
+                    ptsPitchId = textOptionList[i]['ptsPitchId']
+                    if ptsPitchId in pts_dict.keys():
+                        pts_data = pts_dict[ptsPitchId]
+                        if pts_data['ballcount'] == textOptionList[i]['pitchNum']:
+                            pts_data['speed'] = textOptionList[i]['speed']
+                            pts_data['stuff'] = textOptionList[i]['stuff']
+                        else:
+                            pts_data = None
 
             pitch_num = None
             if text_type == 1:
                 try:
-                    pitch_num = text_set[i]['pitchNum']
+                    pitch_num = textOptionList[i]['pitchNum']
                 except KeyError:
                     pitch_num = None
 
