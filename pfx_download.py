@@ -163,7 +163,7 @@ def download_relay(args, lm=None):
             done = 0
             skipped = 0
             for game_id in game_ids[year][month]:
-                if (int(game_id[:4]) < 2008):
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > 6666):
                     skipped += 1
                     continue
                 if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
