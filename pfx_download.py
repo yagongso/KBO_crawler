@@ -24,6 +24,9 @@ from utils import check_url
 from utils import get_args
 
 regular_start = {
+    '3333': '0101', # playoff
+    '4444': '0101', # playoff
+    '5555': '0101', # playoff
     '2008': '0329',
     '2009': '0404',
     '2010': '0327',
@@ -35,10 +38,12 @@ regular_start = {
     '2016': '0401',
     '2017': '0331',
     '2018': '0324'
-# '2018': '0301' # 시범경기; 임시
 }
 
 playoff_start = {
+    '3333': '1231', # playoff
+    '4444': '1231', # playoff
+    '5555': '1231', # playoff
     '2008': '1008',
     '2009': '0920',
     '2010': '1005',
@@ -49,7 +54,7 @@ playoff_start = {
     '2015': '1010',
     '2016': '1021',
     '2017': '1010',
-    '2018': '1015' # 시범경기; 임시
+    '2018': '1015'
 }
 
 teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
@@ -158,7 +163,7 @@ def download_relay(args, lm=None):
             done = 0
             skipped = 0
             for game_id in game_ids[year][month]:
-                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > datetime.datetime.now().year):
+                if (int(game_id[:4]) < 2008):
                     skipped += 1
                     continue
                 if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
