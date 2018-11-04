@@ -27,6 +27,7 @@ regular_start = {
     '3333': '0101', # playoff
     '4444': '0101', # playoff
     '5555': '0101', # playoff
+    '7777': '0101', # playoff
     '2008': '0329',
     '2009': '0404',
     '2010': '0327',
@@ -44,6 +45,7 @@ playoff_start = {
     '3333': '1231', # playoff
     '4444': '1231', # playoff
     '5555': '1231', # playoff
+    '7777': '1231', # playoff
     '2008': '1008',
     '2009': '0920',
     '2010': '1005',
@@ -163,7 +165,7 @@ def download_relay(args, lm=None):
             done = 0
             skipped = 0
             for game_id in game_ids[year][month]:
-                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > 6666):
+                if (int(game_id[:4]) < 2008) or (int(game_id[:4]) > 7777):
                     skipped += 1
                     continue
                 if (int(game_id[:4]) == datetime.datetime.now().year) and (int(game_id[4:8]) > int(datetime.datetime.now().date().strftime('%m%d'))):
