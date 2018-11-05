@@ -15,6 +15,7 @@ import pandas as pd
 import datetime
 import time
 import regex
+import collections
 import ast
 
 # custom library
@@ -249,8 +250,20 @@ def download_relay(args, lm=None):
                             if isinstance(js, str):
                                 js = json.loads(js)
                                 #js = ast.literal_eval(js)
+
+                            # BUGBUG
+                            # 문자중계 텍스트에 비 unicode 문자가 들어간 경우.
+                            # gameid : 20180717LGWO02018
+                            # 문제가 되는 텍스트: \ufffd (REPLACEMENT CHARACTER) - cp949로 저장 불가
+                            # 해결책: cp949로 encoding 불가능한 문자가 있을 때는 blank text로 교체.
                             for i in range(len(js['relayList'])):
                                 txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                                texts = txt['relayList'][js['relayList'][i]['no']]['textOptionList']
+                                for i in range(len(texts)):
+                                    try:
+                                        texts[i]['text'].encode('cp949')
+                                    except UnicodeEncodeError:
+                                        texts[i]['text'] = ''
                         else:
                             skipped += 1
                             if lm is not None:
@@ -339,7 +352,7 @@ def download_pfx(args, lm=None):
     if lm is not None:
         lm.resetLogHandler()
         lm.setLogPath(os.getcwd())
-        lm.setLogFileName('pfx_download_log.txt')
+        lm.setLogFileName('relaypfx_download_log.txt')
         lm.cleanLog()
         lm.createLogHandler()
         lm.log('---- Pitch Data Download Log ----')
