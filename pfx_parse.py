@@ -279,7 +279,6 @@ class BallGame:
         self.set_hitter_to_base = False
         self.prev_pid = None
         self.made_errors = False
-        self.rain_delay = False
 
     def print_row(self):
         row = [str(self.game_status['pitch_type']), str(self.game_status['pitcher']), str(self.game_status['batter']),
@@ -342,12 +341,12 @@ class BallGame:
     def print_row_debug(self):
         # for debug
         print('\n')
-        row = str(self.game_status['pitch_result']) + ',PIT'
-        row += str(self.game_status['pitcher']) + ',BAT'
-        row += str(self.game_status['batter']) + ','
-        row += str(self.game_status['balls']) + 'B/'
-        row += str(self.game_status['strikes']) + 'S/'
-        row += str(self.game_status['outs']) + 'O,'
+        row = str(self.game_status['pitch_result']) + ', '
+        row += str(self.game_status['pitcher']) + ', '
+        row += str(self.game_status['batter']) + ', '
+        row += str(self.game_status['balls']) + '/'
+        row += str(self.game_status['strikes']) + '/'
+        row += str(self.game_status['outs']) + ', '
         row += str(self.game_status['inning'])
         if self.game_status['inning_top_bot'] == 0:
             row += '초,'
@@ -357,7 +356,7 @@ class BallGame:
         row += str(self.game_status['score_home']) + ', '
         row += str(self.game_status['on_1b']) + '/'
         row += str(self.game_status['on_2b']) + '/'
-        row += str(self.game_status['on_3b']) + ',PA_RES:'
+        row += str(self.game_status['on_3b']) + ', '
         row += str(self.game_status['pa_result']) + '\n'
 
         if self.game_status['inning_top_bot'] == 0:
@@ -572,13 +571,6 @@ class BallGame:
             elif self.game_status['pa_result'].find('자동') > -1:
                 self.print_row()
                 # self.print_row_debug()
-        elif self.rain_delay is True:
-            if self.ball_and_not_hbp is True:
-            # 연속으로 볼이 들어왔을 때
-            # 사구가 아니라면 앞선 볼 상황을 출력
-                self.game_status['balls'] -= 1
-                self.print_row()
-            # self.print_row_debug()
         
         self.game_status['balls'] = 0
         self.game_status['strikes'] = 0
@@ -1724,20 +1716,6 @@ def parse_text(text, text_type, ball_game, game_over,
             return True
     elif text_type == 7:
         # system text
-        # BUGBUG : 우천중단으로 종료시 마지막 공 출력 안됨
-        # 20180809SKNC02018
-        #       경기종료
-        #       8번타자 나주환
-        #          (22:34~23:14분) 우천으로 40분간 경기중단.
-        #         - 4구 볼
-        #         - 3구 볼
-        #          - 2구 스트라이크
-        #         - 1구 볼
-        # '우천 중단' 텍스트 출력 후 경기 종료하는 경우의 flag 필요
-        # 여기서 flag 세우고, 다음 text에서 종료(text_type == 99)일 때 flag 확인
-        # game over 하기 전에 pa_result 안 정해진 row 남아있으면 출력.
-        if (text.find('우천') > 0) & (text.find('중단') > 0):
-            ball_game.rain_delay = True
         return True
     elif text_type == 8:
         # batter name
@@ -1774,9 +1752,6 @@ def parse_text(text, text_type, ball_game, game_over,
         return True
     elif text_type == 99:
         # game end
-        # 정상 종료일 때만 여기로 이동
-        # 끝내기, 비정상 종료는 상위 parse_game에서 check_game_over를 통해 판단
-        # 정상 종료가 아닌 경우 @go_to_next_pa로 이동, game_over 확인
         game_over[0] = True
         return True
     else:
@@ -1835,17 +1810,10 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
 
         if textOptionList[0]['type'] == 99:
             # 끝내기인지, 정상적 종료인지 체크해야 한다.
-            if ball_game.rain_delay is True:
-                ball_game.go_to_next_pa()
-                game_over[0] = True
-                break
-
             if ball_game.check_game_over() is not True:
                 ball_game.go_to_next_pa()
                 game_over[0] = True
                 break
-        if ball_game.rain_delay is True:
-            ball_game.rain_delay = False
 
         if 'ptsOptionList' in relayList[str(k)].keys():
             ptsOptionList = relayList[str(k)]['ptsOptionList']
