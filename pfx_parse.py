@@ -533,7 +533,7 @@ class BallGame:
     def go_to_next_pa(self):
         # 이전 타석의 결과물을 print한다.
         # 타석 관련 데이터를 reset한다. 볼, 스트, 아웃 등
-        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B (4)HBP (5) 자동 고의4구
+        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B(IBB 포함) (4)HBP (5) 자동 고의4구
         #     이럴 때는 이전 타석 결과를 print한다.
         # 그 밖의 경우: 타석 도중 교체
         #     타석 데이터 reset 없이 true만 반환한다.
@@ -561,6 +561,7 @@ class BallGame:
             self.print_row()
             # self.print_row_debug()
         elif self.game_status['balls'] == 4:
+            # 자동 아닌 고의4구도 여기에 포함
             self.game_status['balls'] = 3
             self.print_row()
             # self.print_row_debug()
@@ -570,6 +571,7 @@ class BallGame:
                 self.print_row()
                 # self.print_row_debug()
             elif self.game_status['pa_result'].find('자동') > -1:
+                #   타석 종료된 경우 (5) 자동 고의4구 추가
                 self.print_row()
                 # self.print_row_debug()
         elif self.rain_delay is True:
@@ -654,6 +656,7 @@ class BallGame:
             self.game_status['pa_result'] = '볼넷'
         else:
             self.ball_and_not_hbp = True
+            # 볼넷이 아니고, 연속 볼이 들어올 때만.
         self.game_status['balls'] += 1
 
     def get_strike(self):
@@ -782,18 +785,29 @@ class BallGame:
         self.change_1b = True
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
+        # ball_and_not_hbp가 True일 때:
+        #       '볼넷이 아니면서' & '연속 볼로 인한 진루'일 때만
+        # 여기에 '(자동) 고의4구가 아닐때'도 추가.
+        # True면 False로 바꿔준다.
+        # (고의4구로 타석 바뀌면 리셋되니까, False로 한다)
+        self.ball_and_not_hbp = False
 
     # BUGBUG: 자동 고의4구 직전 투구 기록되지 않음
     # 20180720WONC02018 스크럭스 8회말 타석
     # print_row()를 실행하지 않음(ibb()로 game_status에 pa_result만 기록함)
     # 타석 종료된 경우 (5) 자동 고의4구 추가
-
     def auto_ibb(self):
         self.game_status['pa_result'] = '자동 고의4구'
         self.runner_change = True
         self.change_1b = True
         self.next_1b = self.game_status['batter']
         self.set_hitter_to_base = True
+        self.ball_and_not_hbp = False
+        # ball_and_not_hbp가 True일 때:
+        #       '볼넷이 아니면서' & '연속 볼로 인한 진루'일 때만
+        # 여기에 '자동 고의4구가 아닐때'도 추가.
+        # True면 False로 바꿔준다.
+        # (고의4구로 타석 바뀌면 리셋되니까, False로 한다)
 
     def hbp(self):
         self.game_status['pa_result'] = '몸에 맞는 볼'
