@@ -340,6 +340,7 @@ class BallGame:
 
     def print_row_debug(self):
         # for debug
+        print('\n')
         row = str(self.game_status['pitch_result']) + ', '
         row += str(self.game_status['pitcher']) + ', '
         row += str(self.game_status['batter']) + ', '
@@ -531,10 +532,16 @@ class BallGame:
     def go_to_next_pa(self):
         # 이전 타석의 결과물을 print한다.
         # 타석 관련 데이터를 reset한다. 볼, 스트, 아웃 등
-        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B (4)HBP
+        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B (4)HBP (5) 자동 고의4구
         #     이럴 때는 이전 타석 결과를 print한다.
         # 그 밖의 경우: 타석 도중 교체
         #     타석 데이터 reset 없이 true만 반환한다.
+        
+        # BUGBUG: 자동 고의4구 직전 투구 기록되지 않음
+        # 20180720WONC02018 스크럭스 8회말 타석
+        # print_row()를 실행하지 않음(ibb()로 game_status에 pa_result만 기록함)
+        #   자동 고의4구를 새로운 결과로 추가(기존: 고의4구만 존재)
+        #   타석 종료된 경우 (5) 자동 고의4구 추가
         if self.made_errors is True:
             # 2018/8/12 : 실책 출루인데 포스 아웃으로 기록되는 사례(20180812HTSK0)
             # 최형우 : 2루수 앞 땅볼로 출루
@@ -559,6 +566,9 @@ class BallGame:
         elif self.game_status['pa_result'] is not None:
             if self.game_status['pa_result'].find('몸에') > -1:
                 self.game_status['balls'] -= 1
+                self.print_row()
+                # self.print_row_debug()
+            elif self.game_status['pa_result'].find('자동') > -1:
                 self.print_row()
                 # self.print_row_debug()
         
@@ -760,6 +770,18 @@ class BallGame:
 
     def ibb(self):
         self.game_status['pa_result'] = '고의4구'
+        self.runner_change = True
+        self.change_1b = True
+        self.next_1b = self.game_status['batter']
+        self.set_hitter_to_base = True
+
+    # BUGBUG: 자동 고의4구 직전 투구 기록되지 않음
+    # 20180720WONC02018 스크럭스 8회말 타석
+    # print_row()를 실행하지 않음(ibb()로 game_status에 pa_result만 기록함)
+    # 타석 종료된 경우 (5) 자동 고의4구 추가
+
+    def auto_ibb(self):
+        self.game_status['pa_result'] = '자동 고의4구'
         self.runner_change = True
         self.change_1b = True
         self.next_1b = self.game_status['batter']
@@ -1098,6 +1120,7 @@ class BallGame:
 pa_pattern = regex.compile('^\p{Hangul}+ : [\p{Hangul}|0-9|\ ]+')
 pitch_pattern = regex.compile('^[0-9]+구 [0-9\ C\p{Hangul}]+')
 ibb_pattern = regex.compile('^[0-9]+구 I')
+auto_ibb_pattern = regex.compile('자동 고의4구')
 runner_pattern = regex.compile('^[0-9]루주자 \p{Hangul}+ : [\p{Hangul}|0-9|\ ()->FD]+')
 batter_pattern = regex.compile('^(([1-9]번타자)|(대타)) \p{Hangul}+')
 src_pattern = regex.compile('[\p{Hangul}|0-9]+ \p{Hangul}+ : ')
@@ -1123,6 +1146,8 @@ def parse_pa_result(text, ball_game):
         ball_game.strike_out()
     elif result.find('볼넷') >= 0:
         ball_game.four_ball()
+    elif result.find('자동 고의4구') >= 0:
+        ball_game.auto_ibb()
     elif result.find('고의4구') >= 0:
         ball_game.ibb()
     elif result.find('몸에') >= 0:

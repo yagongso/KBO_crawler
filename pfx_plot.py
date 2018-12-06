@@ -1,27 +1,25 @@
 # coding: utf-8
 
-import csv
-import json
-import collections
+import sys, csv, json, collections, datetime, os, numbers, importlib
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy.random
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
-import datetime
 from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
 from IPython.display import display
 import pandas as pd
-import os
+import seaborn as sns
 from enum import Enum
-import numbers
 from scipy.ndimage.filters import gaussian_filter
 import ipywidgets as widgets
 from IPython.display import clear_output
+import scipy as sp
+from scipy import stats
+import pylab as pl
 
-import importlib
 if importlib.util.find_spec('pygam') is not None:
     from pygam import LogisticGAM
 
@@ -29,14 +27,19 @@ Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
-def set_fonts():
+def set_fonts(name=None):
     if os.name == 'posix':
         fm.get_fontconfig_fonts()
         font_location = '/Library/Fonts/NanumSquareOTFRegular.otf'
         font_name = fm.FontProperties(fname=font_location).get_name()
         rc('font', family=font_name)
     else:
-        rc('font', family='NanumSquare')
+        if name is not None:
+            rc('font', family=name)
+            if fm.FontProperties().get_name() == 'DejaVu Sans':
+                rc('font', family='NanumSquare')
+        else:
+            rc('font', family='NanumSquare')
         
 
 def clean_debug(df):
@@ -104,319 +107,184 @@ def plot_strike_calls(df, title=None, show_pitch_number=False, print_std=False):
     return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number, print_std=print_std)
 
 
-def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, print_std=False):
+def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
     set_fonts()
-    
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
-    lb = -1.5  # leftBorder
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트    
+    lb = -1.5 # leftBorder
     rb = +1.5  # rightBorder
-    tb = +4.0  # topBorder
-    bb = +1.0  # bottomBorder
-    
-    ll = -17/24  # leftLine
-    rl = +17/24  # rightLine
-    tl = +3.325  # topLine
-    bl = +1.579  # bottomLine
-    
-    oll = -17/24-1/8  # outerLeftLine
-    orl = +17/24+1/8  # outerRightLine
-    otl = +3.325+1/8  # outerTopLine
-    obl = +1.579-1/8  # outerBottomLine
-    
-    # 타자 상하 존 경계에 맞춰 표준화하는 경우
-    # 타자 상하 존 경계에 맞춰 표준화하는 경우
-    # Reference
-    # http://tangotiger.com/index.php/site/article/stacast-lab-pitch-zones-heart-shadow-ozone
-    
-    # 상단 경계 위의 공은 경계선과의 차이를 먼저 계산하고
-    # 경계선을 3.5피트로 조정하여 환산.
-    # ex) sz_top=3.7, pz=4.3 -> sz_top이 3.5인걸로 가정해 pz_std를 4.1로 보정
-    
-    # 하단 경계 밑의 공은 존 하단 경계선을 1.5피트로 가정하고
-    # 지면(0피트)과 경계선 사이의 상대적인 비율에 맞춰 보정.
-    # ex) sz_bot=2, pz=1 -> sz_bot이 1.5인걸로 가정해 pz_std를 0.75로 보정
-    
-    # 상단-하단 사이, 존 내부의 공은 1.5~3.5 사이의 비율에 맞춰 보정.
-    # ex) sz_bot=2, sz_top=5, pz=3.5 -> sz_top=1.5, sz_bot=3.5로 가정해 2.5로 보정
-    
-    if print_std is True:
-        tl = 3.5        # topLine
-        bl = 1.5        # bottomLine
-        ll = -20/24  # leftLine
-        rl = +20/24  # rightLine
-        
-        df = df.assign(pz_std=np.where(df.pz < df.sz_bot, (df.pz*1.5/df.sz_bot),
-                                       np.where(df.pz > df.sz_top, df.pz-(df.sz_top-3.5),
-                                                (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2+2.5)))
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
 
-    # 스트라이크, 볼만 표기 -> 서브플롯 1개
-    fig, ax = plt.subplots(figsize=(2,2), dpi=150, facecolor='#898f99')
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
     
-    if title is not None:
-        st = fig.suptitle(title, fontsize='medium')
-        st.set_color('white')
-        st.set_weight('bold')
-        st.set_horizontalalignment('center')
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    else:
+        fig = None
     
     if calls is None:
         calls_ = df.pitch_result.drop_duplicates()
-        
-        for c in calls_:
-            f = df.loc[df.pitch_result == c]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, color=Colors[c], alpha=.5, s=np.pi*40*72/fig.dpi, label=c)
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, color=Colors[c], alpha=.5, s=np.pi*40*72/fig.dpi, label=c)
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
+    elif type(calls) is list:
+        calls_ = calls
+    elif type(calls) is str:
+        calls_ = calls
     else:
-        if type(calls) is list:
-            for call in calls:
-                f = df.loc[df.pitch_result == call]
-                color = Colors[call]
-                
-                if print_std is True:
-                    ax.scatter(f.px, f.pz_std, color=Colors[call], alpha=.5, s=np.pi*40*72/fig.dpi, label=call)
-                    
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                                ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-                else:
-                    ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*40*72/fig.dpi, label=call)
+        print()
+        print( 'ERROR: call option must be either string or list' )
+        exit(1)
+        
+    for c in calls_:
+        f = df.loc[df.pitch_result == c]
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*fig.dpi, label=c, cmap='set1', zorder=0)
 
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                                ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-        elif type(calls) is str:
-            f = df.loc[df.pitch_result == calls]
-            color = Colors[calls]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, color=Colors[calls], alpha=.5, s=np.pi*40*72/fig.dpi, label=calls)
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, color=color, alpha=.5, s=np.pi*40*72/fig.dpi, label=calls)
+        if show_pitch_number is True:
+            for i in f.index:
+                if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                            color='white', fontsize='medium', weight='bold', horizontalalignment='center')
+    
+    ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
 
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-        else:
-            print()
-            print( 'ERROR: call option must be either string or list' )
-            exit(1)
+    ax.plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
 
-    ax.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
 
-    ax.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    if print_std is False:
-        ax.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-        ax.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
+    ax.plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
     ax.axis( [lb, rb, bb, tb] )
 
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
+    if title is not None:
+        plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+    
     plt.axis('off')
     ax.autoscale_view('tight')
-
+    
     if legends is True:
-        ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
+        ax.legend(loc='lower center', ncol=2, fontsize='medium')
         
     return fig, ax
 
 
-def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, print_std=False):
+def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, is_cm=False, dpi=80, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
-    lb = -1.5  # leftBorder
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트    
+    lb = -1.5 # leftBorder
     rb = +1.5  # rightBorder
-    tb = +4.0  # topBorder
-    bb = +1.0  # bottomBorder
-    
-    ll = -17/24  # leftLine
-    rl = +17/24  # rightLine
-    tl = +3.325  # topLine
-    bl = +1.579  # bototmLine
-    
-    oll = -17/24-1/8  # outerLeftLine
-    orl = +17/24+1/8  # outerRightLine
-    otl = +3.325+1/8  # outerTopLine
-    obl = +1.579-1/8  # outerBottomLine
-    
-    # 타자 상하 존 경계에 맞춰 표준화하는 경우
-    # Reference
-    # http://tangotiger.com/index.php/site/article/stacast-lab-pitch-zones-heart-shadow-ozone
-    
-    # 상단 경계 위의 공은 경계선과의 차이를 먼저 계산하고
-    # 경계선을 3.5피트로 조정하여 환산.
-    # ex) sz_top=3.7, pz=4.3 -> sz_top이 3.5인걸로 가정해 pz_std를 4.1로 보정
-    
-    # 하단 경계 밑의 공은 존 하단 경계선을 1.5피트로 가정하고
-    # 지면(0피트)과 경계선 사이의 상대적인 비율에 맞춰 보정.
-    # ex) sz_bot=2, pz=1 -> sz_bot이 1.5인걸로 가정해 pz_std를 0.75로 보정
-    
-    # 상단-하단 사이, 존 내부의 공은 1.5~3.5 사이의 비율에 맞춰 보정.
-    # ex) sz_bot=2, sz_top=5, pz=3.5 -> sz_top=1.5, sz_bot=3.5로 가정해 2.5로 보정
-    
-    if print_std is True:
-        tl = 3.5        # topLine
-        bl = 1.5        # bottomLine
-        ll = -20/24  # leftLine
-        rl = +20/24  # rightLine
-        
-        df = df.assign(pz_std=np.where(df.pz < df.sz_bot, (df.pz*1.5/df.sz_bot),
-                                       np.where(df.pz > df.sz_top, df.pz-(df.sz_top-3.5),
-                                                (df.pz - (df.sz_top+df.sz_bot)/2)/(df.sz_top-df.sz_bot)*2+2.5)))
-    
-    fig, ax = plt.subplots(figsize=(2,2), dpi=150, facecolor='#898f99')
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
 
-    if title is not None:
-        st = fig.suptitle(title, fontsize='medium')
-        st.set_color('white')
-        st.set_weight('bold')
-        st.set_horizontalalignment('center')
-        
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='grey')
+    else:
+        fig = None
+    
     if pitch_types is None:
         pitch_types_ = df.pitch_type.drop_duplicates()
-        
-        for p in pitch_types_:
-            f = df.loc[df.pitch_type == p]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
+    elif type(pitch_types) is list:
+        pitch_types_ = pitch_types
+    elif type(pitch_types) is str:
+        pitch_types_ = pitch_types
     else:
-        if type(pitch_types) is list:
-            for p in pitch_types:
-                f = df.loc[df.pitch_type == p]
-                
-                if print_std is True:
-                    ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
-                    
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                                ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-                else:
-                    ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=p, cmap='set1')
+        print()
+        print( 'ERROR: call option must be either string or list' )
+        exit(1)
+        
+    for p in pitch_types_:
+        f = df.loc[df.pitch_type == p]
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*fig.dpi, label=p, cmap='set1', zorder=0)
 
-                    if show_pitch_number is True:
-                        for i in f.index:
-                            if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                                ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                        color='white', fontsize='xx-small', horizontalalignment='center')
-        elif type(pitch_types) is str:
-            f = df.loc[df.pitch_type == pitch_types]
-            
-            if print_std is True:
-                ax.scatter(f.px, f.pz_std, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
-                
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if (f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz_std-0.05 < tb) & (f.loc[i].pz_std-0.05 > bb):
-                            ax.text(f.loc[i].px, f.loc[i].pz_std - 0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-            else:
-                ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*40*72/fig.dpi, label=pitch_types, cmap='set1')
+        if show_pitch_number is True:
+            for i in f.index:
+                if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                            color='white', fontsize='medium', weight='bold', horizontalalignment='center')
+    
+    ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
 
-                if show_pitch_number is True:
-                    for i in f.index:
-                        if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                            ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                    color='white', fontsize='xx-small', horizontalalignment='center')
-        else:
-            print()
-            print( 'ERROR: call option must be either string or list' )
-            exit(1)
+    ax.plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
+    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
 
-    ax.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
+    ax.plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
 
-    ax.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    ax.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    if print_std is False:
-        ax.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-        ax.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-        ax.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
+    ax.plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
     ax.axis( [lb, rb, bb, tb] )
 
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
+    if title is not None:
+        plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+    
     plt.axis('off')
     ax.autoscale_view('tight')
-
+    
     if legends is True:
-        ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2, fontsize='xx-small')
+        ax.legend(loc='lower center', ncol=2, fontsize='medium')
         
     return fig, ax
 
-    
+
 # 경기 전체 call
 def plot_match_calls(df, title=None):
     set_fonts()
@@ -663,302 +531,337 @@ def fmt(x, pos):
     return r'{}%'.format(int(x*100))
 
 
-def plot_contour_balls(df, title=None, print_std=False):
+def plot_contour_balls(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
     
-    lb = -2.0
-    rb = +2.0
+    lb = -1.5
+    rb = +1.5
     ll = -17/24
     rl = +17/24
     oll = -20/24
     orl = +20/24
-    
-    if print_std is False:
-        bb = 0.452
-        tb = 4.452
-        bl = 1.579
-        tl = 3.325
-        obl = 1.579-3/24
-        otl = 3.325+3/24
-    else:
-        lb = -2.291
-        rb = +2.291
-        bb = -2.291
-        tb = +2.291
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-        
-    from scipy.stats.kde import gaussian_kde
-    
-    if print_std is False:
-        k = gaussian_kde(np.vstack([df.px.values, df.pz.values]))
-    else:
-        k = gaussian_kde(np.vstack([df.px.values,
-                                    (df.pz.values - (df.sz_top.values+df.sz_bot.values)/2) / (df.sz_top.values-df.sz_bot.values)*2]
-                                  ))
-    
-    length = len(df)
-    
-    xi, yi = np.mgrid[lb:rb:length**0.5*1j,bb:tb:length**0.5*1j]
-    zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
-    fig, ax = plt.subplots(figsize=(4,3), dpi=160)
-
-    if print_std is False:
-        cs = ax.contourf(xi, yi, zi.reshape(xi.shape), cmap='YlOrRd' )
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
     else:
+        fig = None
+    
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/10
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 5
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(bb, tb+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(bb, tb+minor_ytick_step, minor_ytick_step)
+            
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    plt.rcParams['axes.unicode_minus'] = False
+    
+    if cmap is None:
+        cmap='Reds'
+    
+    sns.kdeplot(df.px, df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
+                cbar=True, cmap=cmap, cbar_kws={'format': ticker.FuncFormatter(fmt)},
+                ax=ax, zorder=0)
+
+    sns.kdeplot(df.px, df.pz, clip=((lb, rb), (bb, tb)), legend=False,
+                cmap=cmap, linewidths=2.5,
+                ax=ax, zorder=1)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.grid(which='minor', alpha=1.0, color='white', linewidth=0.2, zorder=10)
+    ax.grid(which='major', alpha=1.0, color='white', linewidth=0.2, zorder=10)
+    
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticks([], minor=True)
+    ax.set_yticks([], minor=True)
+    
+    ax.autoscale_view('tight')
+
+    if title is not None:
+        ax.set_title(title, fontsize='medium')
+    
+    return fig, ax
+
+
+def plot_heatmap(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None, show_full=False, color=None):
+    set_fonts()
+    if df.px.dtypes == np.object:
+        df = clean_data(df)
+    
+    lb = -1.5
+    rb = +1.5
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+    
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+    
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
+    else:
+        fig = None
+    ax.cla()
+    
+    if cmap is None:
+        cmap='Reds'
+    
+    if cmap is not None:
         from matplotlib.colors import LinearSegmentedColormap
-        cmap = LinearSegmentedColormap.from_list('mycmap', ['#fff6b6', '#fee38b', '#fec561', '#fd9f44', '#fc6c33', '#f03523', '#cf0c1e', '#9f0026'])
+        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*6)
 
-        cs = ax.contourf(xi, yi, zi.reshape(xi.shape), cmap=cmap)
+    if show_full is True:
+        levels = np.asarray([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
+        cmap = LinearSegmentedColormap.from_list('mycmap', [color]*10)
+    else:
+        levels = np.asarray([.5, .6, .7, .8, .9, 1.])
+
+    cs = ax.contourf(x, y, rg, levels=levels, cmap=cmap, zorder=1)
+    ax.contour(x, y, rg, levels=levels, cmap=cmap, linewidths=2, zorder=1)
     
-    cbar = plt.colorbar(cs, format=ticker.FuncFormatter(fmt))
+    ax.set_facecolor('#cccccc')
+    plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
+    
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/12
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 20/6
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
 
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
+
+    ax.grid(which='minor', color='white', linewidth=0.1, zorder=10)
+    ax.grid(which='major', color='white', linewidth=0.2, zorder=10)
+
+    ax.autoscale_view('tight')
+    plt.rcParams['axes.unicode_minus'] = False
+    
     ax.set_xbound(lb, rb)
     ax.set_ybound(bb, tb)
     
-    plt.plot( [ll, ll], [bl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#2d2d2d', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#2d2d2d', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#000000', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#000000', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#000000', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#000000', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    ax.axis('off')
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    ax.autoscale_view('tight')
-    fig.set_facecolor('white')
-
     if title is not None:
-        st = fig.suptitle(title, fontsize=16)
-        st.set_weight('bold')
-        
-    #plt.show()
+        ax.set_title(title, fontsize='x-large')
     
     return fig, ax
 
-    
-def get_heatmap(df, threshold=0.5, print_std=False, gaussian=True):
+
+def plot_szone(df, title=None, dpi=144, is_cm=False, show_area=False, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
     
-    x = np.arange(-1.5, +1.5, 1/12)
-    if print_std is True:
-        y = np.arange(-1.5, +1.5, 1/12)
-    else:
-        y = np.arange(+1.0, +4.0, 1/12)
-        
-    P = np.zeros((36,36))
-    S = np.zeros((36,36))
-    
-    smask = (df.pitch_result == '스트라이크')
-    bmask = (df.pitch_result == '볼')
-    
-    if ('sz_top' in df.keys()) & ('sz_bot' in df.keys()):
-        sub_df = df[['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot']]
-    else:
-        if print_std is True:
-            return False
-        sub_df = df[['px', 'pz', 'pitch_result']]
-    
-    if print_std is True:
-        sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
-    
-    for i in range(len(x)):
-        for j in range(len(y)):
-            s = 0
-            b = 0
-            if i == 0:
-                if j == 0:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-            else:
-                if j == 0:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j])])
-                else:
-                    if print_std is True:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz_std <= y[j]) & (sub_df.pz_std > y[j-1])])
-                    else:
-                        s = len(sub_df.loc[smask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-                        b = len(sub_df.loc[bmask & (sub_df.px <= x[i]) & (sub_df.px > x[i-1]) & (sub_df.pz <= y[j]) & (sub_df.pz > y[j-1])])
-            if s+b > 0:
-                P[i,j] = s/(s+b)
-            else:
-                P[i,j] = 0
-    P = P.T
-    if gaussian is True:
-        P = gaussian_filter(P, sigma=0.85, truncate=1, mode='constant', output=np.float32)
-    S = (P >= threshold)
-    return P, S
-
-
-def plot_heatmap(df, title=None, print_std=False, gaussian=False):
-    set_fonts()
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
-    
-    P, S = get_heatmap(df, print_std=print_std, gaussian=gaussian)
-    
-    lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder
-    
-    x = np.arange(lb, rb, 1/12)
-    
-    if print_std is True:
-        bb = -1.5  # bottomBorder
-        tb = +1.5  # topBorder
-        y = np.arange(bb, tb, 1/12)
-    else:
-        bb = +1.0  # bottomBorder
-        tb = +4.0  # topBorder
-        y = np.arange(+1.0, +4.0, 1/12)
-    X, Y = np.meshgrid(x, y)
-
-    fig, ax = plt.subplots(figsize=(6,5), dpi=80, facecolor='white')
-
-    plt.rcParams['axes.unicode_minus'] = False
-    plt.pcolormesh(X, Y, P)
-    plt.colorbar(format=ticker.FuncFormatter(fmt))
-    
+    lb = -1.5
+    rb = +1.5
     ll = -17/24
     rl = +17/24
     oll = -20/24
     orl = +20/24
-    bl = 1.579
-    tl = 3.325
-    obl = 1.579-3/24
-    otl = 3.325+3/24
-    
-    if print_std is True:
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-    
-    plt.plot( [ll, ll], [bl, tl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#ffffff', linestyle= '-', lw=1 )
 
-    plt.plot( [ll, rl], [bl, bl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#ffffff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [orl, orl], [obl, otl], color='#ffffff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#ffffff', linestyle= '-', lw=1 )
-    plt.plot( [oll, orl], [otl, otl], color='#ffffff', linestyle= '-', lw=1 )
-
-    if title is not None:
-        plt.title(title)
-
-    plt.axis( [lb+1/12, rb-1/12, bb+1/12, tb-1/12])
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = 1.0
+    tb = 4.0
     
-    return fig, ax
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+    
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
 
+    bins = 36
 
-def plot_szone(df, threshold=0.5, title=None, show_area=True, print_std=False, gaussian=False):
-    set_fonts()
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
+    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
     
-    P, S = get_heatmap(df, threshold=threshold, print_std=print_std, gaussian=gaussian)
+    x, y = np.meshgrid(np.arange(lb, rb, (rb-lb)/bins), np.arange(bb, tb, (tb-bb)/bins))
+
+    x = x.T
+    y = y.T
     
-    fig, ax = plt.subplots(figsize=(5,5), dpi=80, facecolor='white')
-        
-    lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder
-    
-    x = np.arange(lb, rb, 1/12)
-    
-    if print_std is True:
-        bb = -1.5  # bottomBorder
-        tb = +1.5  # topBorder
-        y = np.arange(bb, tb, 1/12)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,5), dpi=dpi, facecolor='white')
     else:
-        bb = +1.0  # bottomBorder
-        tb = +4.0  # topBorder
-        y = np.arange(+1.0, +4.0, 1/12)
-    X, Y = np.meshgrid(x, y)
+        fig = None
     
-    plt.rcParams['axes.unicode_minus'] = False
     cmap = matplotlib.colors.ListedColormap(['white', '#ccffcc'])
-    plt.pcolor(X, Y, S, cmap=cmap)
-    ax.set_title('threshold: {}%'.format(round(threshold*100,1)))
-    for i in range(len(x)):
-        plt.axvline(x=float(x[i]), color='grey', linestyle='--', lw=0.2)
-
-    for j in range(len(y)):
-        plt.axhline(y=float(y[j]), color='grey', linestyle='--', lw=0.2)
-        
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
-    if print_std is True:
-        bl = -1.0
-        tl = +1.0
-        obl = -1.0-3/24
-        otl = +1.0+3/24
-    else:
-        bl = 1.579
-        tl = 3.325
-        obl = 1.579-3/24
-        otl = 3.325+3/24
-        
-    plt.plot( [rl, rl], [bl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, ll], [bl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, rl], [bl, bl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [ll, rl], [tl, tl], color='dimgrey', linestyle= '-', lw=0.3 )
+    plt.pcolor(x, y, rg, cmap=cmap)
     
-    plt.plot( [oll, oll], [obl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [orl, orl], [obl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [oll, orl], [obl, obl], color='dimgrey', linestyle= '-', lw=0.3 )
-    plt.plot( [oll, orl], [otl, otl], color='dimgrey', linestyle= '-', lw=0.3 )
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/10
+    else:
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 5
+    
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
+    
+    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
 
-    plt.axis( [lb, rb, bb, tb])    
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
+    
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='solid', lw=0.5 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='solid', lw=0.5 )
+
+    ax.grid(which='minor', alpha=1.0, color='grey', linewidth=0.2)
+    ax.grid(which='major', alpha=1.0, color='grey', linewidth=0.2)
+
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    ax.set_ybound(bb, tb)
+    
+    ax.autoscale_view('tight')
+    plt.rcParams['axes.unicode_minus'] = False
     
     if title is not None:
-        ax.text( 0, tl+0.25, title, color='black', fontsize=14, horizontalalignment='center')
-        
-    area = np.sum(S)
+        plt.title(title, fontsize=14, horizontalalignment='center')
+    
+    area = np.sum(rg >= 0.5)
     print('S-Zone size: {} sq.inch'.format(area))
     
     if show_area is True:
-        ax.text( 0, (tl+bl)/2, '{} sq. inch'.format(str(area)), color='black', fontsize=16, horizontalalignment='center' )
-
+        ax.text( 0, (tb+bb)/2, '{} sq. inch'.format(str(area)), color='black',
+                 fontsize=16, horizontalalignment='center' )
+    
     return fig, ax
 
 
-def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True):
+def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=True, ax=None):
     if pitcher is not None:
         sub_df = df.loc[df.pitcher == pitcher]
     else:
@@ -969,7 +872,10 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
     
     pitches = sub_df.pitch_type.drop_duplicates()
     
-    fig, ax = plt.subplots(figsize=(4,4), dpi=100, facecolor='white')
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(4,4), dpi=100, facecolor='white')
+    else:
+        fig = None
     
     for p in pitches:
         ax.scatter(sub_df.loc[sub_df.pitch_type == p].x0, sub_df.loc[sub_df.pitch_type == p].z0, s=np.pi*20, label=p,cmap='set1')
@@ -996,9 +902,7 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
         ax.set_ybound((ymax+ymin)/2 - 1, (ymax+ymin)/2 + 1)
         
     if title is not None:
-        st = fig.suptitle(title, fontsize=12)
-        st.set_weight('bold')
-    #display(fig)
+        ax.set_title(title, fontsize='medium')
     
     return fig, ax
 
@@ -1237,226 +1141,290 @@ RV = np.asarray([
     0.248, 0.294, 0.402, 0.689
 ])
 
-def count_extra_strike_balls(df, rmap, lmap, print_std=True, use_RV=False):
-    # 36x36 size heatmap
-    
-    # bin 별로 스트라이크 개수/볼 개수 측정
-    # (1-strike확률)*스트라이크 - (strike확률)*볼
-    
-    es = 0
-    eb = 0
-    
+def plot_by_proba(df, title=None, dpi=144, is_cm=False, cmap=None, ax=None):
+    set_fonts()
+    if 'proba' not in df.keys():
+        print('Key "proba" not in dataframe')
+        return
     if df.px.dtypes == np.object:
         df = clean_data(df)
-
-    smask = (df.pitch_result == '스트라이크')
-    bmask = (df.pitch_result == '볼')
     
-    if ('sz_bot' in df.keys()) & ('sz_top' in df.keys()):
-        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'sz_top', 'sz_bot', 'stands', 'balls', 'strikes']]
+    lb = -1.5
+    rb = +1.5
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16
+    tb = (bl+tl)/2 + (tl-bl)*15/16
+    
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+        ll = ll * 30.48
+        rl = rl * 30.48
+        oll = oll * 30.48
+        orl = orl * 30.48
+        bl = bl * 30.48
+        tl = tl * 30.48
+        obl = obl * 30.48
+        otl = otl * 30.48
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
     else:
-        if print_std is True:
-            return False
-        sub_df = df.loc[smask | bmask].loc[:, ['px', 'pz', 'pitch_result', 'stands', 'balls', 'strikes']]
-        
-    if print_std is True:
-        sub_df['pz_std'] = (sub_df.pz-(sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2
+        fig = None
     
-    for i in range(len(sub_df)):
-        row = sub_df.iloc[i]
-
-        x = row.px
-        if not (-13 <= x*12 <= 13):
-            continue
-
-        if print_std is True:
-            y = row.pz_std
-            if not (-13 <= y*12 <= 13):
-                continue
-
-            ind1 = int((x+1.5)*12)
-            ind2 = int((y+1.5)*12)
-
-        else:
-            y = row.pz
-            if not (15 <= y*12 <= 45):
-                continue
-            
-            ind1 = int((x+1.5)*12)
-            ind2 = int((y-1)*12)
-        
-        if use_RV is False:
-            if row.stands == '우':
-                if row.pitch_result == '스트라이크':
-                    es += 1-rmap[ind2][ind1]
-                else:
-                    eb += rmap[ind2][ind1]
-            else:
-                if row.pitch_result == '스트라이크':
-                    es += 1-lmap[ind2][ind1]
-                else:
-                    eb += lmap[ind2][ind1]
-        else:
-            if row.stands == '우':
-                if row.pitch_result == '스트라이크':
-                    es += (1-rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-                else:
-                    eb += (rmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-            else:
-                if row.pitch_result == '스트라이크':
-                    es += (1-lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-                else:
-                    eb += (lmap[ind2][ind1])*RV[row.strikes*4 + row.balls]
-    return es, eb
-
-
-def get_framing_gam(df, gam, use_RV=False):
-    if importlib.util.find_spec('pygam') is None:
-        return None
+    if cmap is None:
+        cmap='Reds'
+    ax.set_facecolor('#cccccc')
+    cs = ax.scatter(df.px, df.pz, alpha=.5, s=np.pi/2*dpi, c=df.proba, cmap=cmap, zorder=0, vmin=0, vmax=1)
+    plt.colorbar(cs, format=ticker.FuncFormatter(fmt), spacing='proportional', ax=ax)
     
-    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
-    
-    if sub_df.px.dtypes == np.object:
-        sub_df = clean_data(sub_df)
-    
-    if 'venue' not in sub_df.keys():
-        X_target = sub_df[['px', 'pz', 'stands_cat']]
+    if is_cm is False:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/12
     else:
-        X_target = sub_df[['px', 'pz', 'stands_cat', 'venue']]
-
-    predictions = gam.predict(X_target)
+        major_xtick_step = major_ytick_step = 20
+        minor_xtick_step = minor_ytick_step = 20/6
     
-    if use_RV is True:
-        y_comp = pd.DataFrame({'calls': sub_df.calls.get_values(),
-                               'pred': predictions,
-                               'balls': sub_df.balls.get_values(),
-                               'strikes': sub_df.strikes.get_values()})
-        
-        y_comp['extra'] = np.where(y_comp.calls != y_comp.pred,
-                                   np.where(y_comp.pred == False,
-                                            RV[y_comp.balls+y_comp.strikes*4],
-                                            -RV[y_comp.balls+y_comp.strikes*4]),
-                                   0)
-        
-    else:
-        y_comp = pd.DataFrame({'calls': sub_df.calls.get_values(), 'pred': predictions})
-        
-        y_comp['extra'] = np.where(y_comp.calls != y_comp.pred,
-                                   np.where(y_comp.pred == False, 1, -1), 0)
-        
-    return y_comp.loc[y_comp.extra > 0].extra.sum(), y_comp.loc[y_comp.extra < 0].extra.sum()
-
-
-def get_season_framing_cell(df, use_RV=False, min_catch=0):
-    if '양' in df.stands.drop_duplicates():
-        df = df.assign(stands_cat=np.where(df.stands=='양',
-                                           np.where(df.throws=='좌', '우', '좌'),
-                                           np.where(df.stands=='우', '좌', '우'))
-                      )
-        
-    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼'])]
+    major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
+    minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
     
-    if sub_df.px.dtypes == np.object:
-        sub_df = clean_data(sub_df)
+    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+
+    ax.set_xticks(major_xticks)
+    ax.set_xticks(minor_xticks, minor=True)
+    ax.set_yticks(major_yticks)
+    ax.set_yticks(minor_yticks, minor=True)
     
-    Rmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '우'], print_std=False, gaussian=True)
-    Lmap, _ = get_heatmap(sub_df.loc[sub_df.stands == '좌'], print_std=False, gaussian=True)
+    ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
 
-    catchers = sub_df.pos_2.drop_duplicates()
-    extras = []
+    ax.plot( [ll, rl], [bl, bl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color='black', linestyle='dashed', lw=1 )
 
-    for c in catchers:
-        caughts = sub_df.loc[sub_df.pos_2 == c]
-        es, eb = count_extra_strike_balls(caughts, Rmap, Lmap, print_std=False, use_RV=use_RV)
-        if use_RV is False:
-            es *= 0.198
-            eb *= 0.198
+    ax.plot( [oll, oll], [obl, otl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color='black', linestyle='dashed', lw=1 )
 
-        extras.append((c, len(caughts), es, eb))
+    ax.plot( [oll, orl], [obl, obl], color='black', linestyle='dashed', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color='black', linestyle='dashed', lw=1 )
 
-    extras.sort(key=lambda tup:tup[2]-tup[3], reverse=True)
+    ax.grid(which='minor', color='white', linewidth=0.1, zorder=10)
+    ax.grid(which='major', color='white', linewidth=0.2, zorder=10)
 
-    print('Framing w/ Cell')
-    if use_RV is True:
-        print('이름\t판정횟수\tExStr\tExBall\tExRun\tExRun/2000')
-    else:
-        print('이름\t판정횟수\tExStr\tExBall\tExCall\tExCall/2000')
-        
-    for x in extras:
-        if x[1] < min_catch:
-            continue
-        print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(x[0], x[1], x[2], x[3], x[2]-x[3],
-                                                              (x[2]-x[3])/x[1]*2000))
-        
-def get_season_framing_gam(df, use_RV=False, min_catch=0, gam=None):
-    if importlib.util.find_spec('pygam') is None:
-        return None
+    ax.set_xbound(lb, rb)
+    ax.set_ybound(bb, tb)
     
-    sub_df = df
+    ax.autoscale_view('tight')
+    plt.rcParams['axes.unicode_minus'] = False
     
-    if sub_df.px.dtypes == np.object:
-        sub_df = clean_data(sub_df)
-        
-    if 'calls' not in sub_df.keys():
-        # strike call: 1, ball call: 0
-        sub_df = sub_df.assign(calls=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
-        
-    if 'stands_cat' not in sub_df.keys():
-        sub_df = sub_df.assign(stands_cat=np.where(sub_df.stands=='양',
-                                           np.where(sub_df.throws=='좌', 1, 0),
-                                           np.where(sub_df.stands=='우', 1, 0)))
-        
-    if 'venue' not in sub_df.keys():
-        sub_df.stadium = pd.Categorical(sub_df.stadium)
-        sub_df['venue'] = sub_df.stadium.cat.codes
-
-    if gam is None:
-        if 'pz_adjusted' not in sub_df.keys():
-            sub_df = sub_df.assign(pz_adjusted=(sub_df.pz - (sub_df.sz_top+sub_df.sz_bot)/2)/(sub_df.sz_top-sub_df.sz_bot)*2)
-
-        #X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz_adjusted', 'stands_cat', 'venue']]
-        #X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
-        X = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['px', 'pz', 'stands_cat', 'venue']]
-        y = sub_df.loc[sub_df.pitch_result.isin(['스트라이크', '볼'])][['calls']]
-
-        gam = LogisticGAM().fit(X, y)
-
-    if use_RV is True:
-        #sub_df = sub_df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
-        sub_df = sub_df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2', 'balls', 'strikes']]
-    else:
-        #sub_df = sub_df[['px', 'pz_adjusted', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
-        sub_df = sub_df[['px', 'pz', 'stands_cat', 'venue', 'pitch_result', 'calls', 'pos_2']]
+    if title is not None:
+        ax.set_title(title, fontsize='xx-large')
     
-    catchers = sub_df.pos_2.drop_duplicates()
+    return fig, ax
 
-    results = []
 
-    for c in catchers:
-        caughts = sub_df.loc[(sub_df.pos_2 == c) & sub_df.pitch_result.isin(['스트라이크', '볼'])]
-        if len(caughts) == 0:
-            continue
-        es, eb = get_framing_gam(sub_df.loc[sub_df.pos_2 == c], gam, use_RV)
-        if use_RV is False:
-            es *= 0.198
-            eb *= 0.198
-        results.append((c, len(caughts), es, eb))
+def calc_framing_gam(df):
+    # 10-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) & (df.stands != 'None') & (df.throws != 'None')]
+    sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
+                                     np.where(sub_df.throws == '좌', '우', '좌'),
+                                     sub_df.stands))
+    sub_df = sub_df.assign(stands = np.where(sub_df.stands=='우', 0, 1)) # 우=0, 좌=1
+    sub_df = sub_df.assign(throws = np.where(sub_df.throws=='우', 0, 1)) # 우=0, 좌=1
+    sub_df.stadium = pd.Categorical(sub_df.stadium)
+    sub_df = sub_df.assign(venue = sub_df.stadium.cat.codes)
 
-    results.sort(key=lambda tup:tup[2]+tup[3], reverse=True)
+    sub_df = sub_df.assign(pitch_result=np.where(sub_df.pitch_result=='스트라이크', 1, 0))
 
-    print('Framing w/ GAM')
-    if use_RV is True:
-        print('이름\t판정횟수\tExStr\tExBall\tExRun\tExRun/2000')
-    else:
-        print('이름\t판정횟수\tExStr\tExBall\tExCall\tExCall/2000')
+    features = ['px', 'pz', 'stands', 'throws', 'venue']
+    label = ['pitch_result']
 
-    for r in results:
-        if r[1] < min_catch:
-            continue
-        else:
-            print('{}\t{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}'.format(r[0], r[1], r[2], r[3], r[2]+r[3], (r[2]+r[3])/r[1]*2000))
+    x = sub_df[features]
+    y = sub_df[label]
+
+    gam = LogisticGAM().fit(x, y)
+    predictions = gam.predict(x)
+    proba = gam.predict_proba(x)
+
+    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium']]
+    logs = logs.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
+
+    logs = logs.assign(prediction = predictions)
+    logs = logs.assign(proba = proba)
+    logs = logs.assign(rv = RV[logs.balls + logs.strikes*4])
+    logs = logs.assign(excall=np.where(logs.prediction!=logs.pitch_result,
+                                       np.where(logs.pitch_result==1, 1, -1),0))
+    logs = logs.assign(exstr=np.where(logs.excall==1, 1, 0))
+    logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
+    logs = logs.assign(exrv=logs.excall * logs.rv)
+    logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
+                                              np.where(logs.excall==-1, -logs.proba*logs.rv, 0)))
+
+    # 포수, catch 개수, extra strike, extra ball, RV sum
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs, tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
 
     
+def calc_framing_cell(df, is_cm=False):
+    # 20-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
+    is_cm=False
+    features = ['px', 'pz', 'pitch_result', 'stands', 'throws', 'pitcher', 'catcher',
+                'stadium', 'referee', 'balls', 'strikes']
+
+    sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) & (df.stands != 'None') & (df.throws != 'None')]
+    sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
+                                     np.where(sub_df.throws == '좌', '우', '좌'),
+                                     sub_df.stands))
+    sub_df = sub_df.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
+    logs = sub_df[features]
+
+    logs = logs.assign(pitch_result=np.where(logs.pitch_result=='스트라이크', 1, 0))
+    strikes = logs.loc[logs.pitch_result == 1]
+    balls = logs.loc[logs.pitch_result == 0]
+
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
+
+    if is_cm is True:
+        lb = lb * 30.48
+        rb = rb * 30.48
+        bb = bb * 30.48
+        tb = tb * 30.48
+
+    bins = 36
+
+    c1, x, y, i = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, i = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    probs = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+
+    logs = logs.assign(x_ind = ((logs.px+1.5)*12).astype(np.int8))
+    logs = logs.assign(y_ind = ((logs.pz-1)*12).astype(np.int8))
+    logs = logs.assign(proba = -1)
+    for i in range(0, bins):
+        for j in range(0, bins):
+            logs = logs.assign(proba = np.where((logs.x_ind == i) & (logs.y_ind == j),
+                                                probs[i][j], logs.proba))
+
+    logs = logs.drop(columns='x_ind')
+    logs = logs.drop(columns='y_ind')
+    logs = logs.assign(prediction = np.where(logs.proba >=0.5, 1, 0))
+    logs = logs.assign(rv= RV[logs.balls + logs.strikes*4])
+    logs = logs.assign(excall=np.where(logs.prediction!=logs.pitch_result,
+                                  np.where(logs.pitch_result==1, 1, -1),0))
+    logs = logs.assign(exstr=np.where(logs.excall==1, 1, 0))
+    logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
+    logs = logs.assign(exrv=logs.excall * logs.rv)
+    logs = logs.assign(exrv_prob=np.where(logs.excall==1, (1-logs.proba)*logs.rv,
+                                          np.where(logs.excall==-1, -logs.proba*logs.rv, 0)))
+
+    # 포수, catch 개수, extra strike, extra ball, RV sum
+    tab = logs.pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs, tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
+
+
+def calc_framing_gam_adv(df, max_dist=0.25):
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
+
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+
+    CS = plt.contour(x, y, rg, levels=np.asarray([.5]), linewidths=2, zorder=1)
+    path = CS.collections[0].get_paths()[0]
+    cts = path.vertices
+    d = sp.spatial.distance.cdist(cts, cts)
+    plt.close()
+    
+    logs, _ = calc_framing_gam(df)
+    logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
+
+    tab = logs.loc[logs.dist < max_dist].pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs.loc[logs.dist < max_dist], tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
+
+
+def calc_framing_cell_adv(df, max_dist=0.25):
+    lb = -1.5
+    rb = +1.5
+    bb = 1.0
+    tb = 4.0
+
+    strikes = df.loc[df.pitch_result == '스트라이크']
+    balls = df.loc[df.pitch_result == '볼']
+
+    bins = 36
+
+    c1, x, y, _ = plt.hist2d(strikes.px, strikes.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    c2, x, y, _ = plt.hist2d(balls.px, balls.pz, range=[[lb, rb], [bb, tb]], bins=bins)
+    plt.close()
+
+    np.seterr(divide='ignore', invalid='ignore')
+    r = np.nan_to_num(c1 / (c1+c2))
+    np.seterr(divide=None, invalid=None)
+    rg = gaussian_filter(r, sigma=1.5, truncate=1, mode='constant')
+
+    x, y = np.mgrid[lb:rb:bins*1j, bb:tb:bins*1j]
+
+    CS = plt.contour(x, y, rg, levels=np.asarray([.5]), linewidths=2, zorder=1)
+    path = CS.collections[0].get_paths()[0]
+    cts = path.vertices
+    d = sp.spatial.distance.cdist(cts, cts)
+    plt.close()
+    
+    logs, _ = calc_framing_cell(df)
+    logs = logs.assign(dist = np.min(sp.spatial.distance.cdist(logs[['px', 'pz']], cts), axis=1))
+
+    tab = logs.loc[logs.dist < max_dist].pivot_table(index='catcher',
+                           values=['exstr', 'exball', 'excall', 'exrv', 'exrv_prob', 'px'],
+                           aggfunc={'exstr': 'sum', 'exball': 'sum', 'excall': 'sum', 'exrv': 'sum', 'exrv_prob':'sum', 'px':'count'})
+    tab = tab.rename(index=str, columns={'px': 'num'}).sort_values('num', ascending=False)
+    
+    return logs.loc[logs.dist < max_dist], tab[['num', 'excall', 'exstr', 'exball', 'exrv', 'exrv_prob']].sort_values('excall', ascending=False)
+
+
 def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True, True]):
     datesFmt = mdates.DateFormatter('%m-%d')
     
@@ -2532,7 +2500,7 @@ def interactive_pitcher_discipline_graph(df):
     box2 = widgets.HBox([items[1], items[3], items[5]])
     statSelectButton = widgets.VBox([box1, box2])
     
-    options = [True, True, True, True, True, True]
+    #options = [True, True, True, True, True, True]
 
     interactive_pitcher_discipline_graph.fig = graph_pitcher_plate_discipline(df, pitcherSelect.value, termSelectSlider.value)
     
