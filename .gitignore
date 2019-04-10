@@ -1,5 +1,5 @@
 *.pyc
-relay*.txt
+*.txt
 bb_data/
 pbp_data/
 __pycache__/
@@ -8,3 +8,5 @@ __pycache__/
 venv/
 Untitled.ipynb
 pfx_plot.ipynb
+*.json
+*.csv
