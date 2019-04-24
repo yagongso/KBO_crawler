@@ -315,6 +315,7 @@ def download_relay(args, lm=None):
                     json.dump(txt, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
                     
+                    '''
                     ##### 텍스트만 저장
                     text_list = []
                     pts_list = []
@@ -358,6 +359,7 @@ def download_relay(args, lm=None):
                         cf.writerow(pl)
                     fp.close()
                     #####
+                    '''
 
                     done += 1
                 else:
