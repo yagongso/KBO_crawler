@@ -194,7 +194,7 @@ class BallGame:
     set_hitter_to_base = False
     text_row = []
     prev_pid = None
-    made_errors = True
+    made_errors = False
 
     def reset_pfx(self):
         self.game_status['pitch_type'] = None
@@ -209,6 +209,14 @@ class BallGame:
         self.game_status['z0'] = None
         self.game_status['sz_top'] = None
         self.game_status['sz_bot'] = None
+        self.game_status['y0'] = None
+        self.game_status['vx0'] = None
+        self.game_status['vy0'] = None
+        self.game_status['vz0'] = None
+        self.game_status['ax'] = None
+        self.game_status['ay'] = None
+        self.game_status['az'] = None
+        self.game_status['pitchId'] = None
 
     def __init__(self, game_date=None):
         if game_date is not None:
@@ -479,13 +487,13 @@ class BallGame:
             else:
                 self.game_status['home_p'] = home_pit['name']
 
-
     # 경기 종료 조건 체크
     # 종료 조건
     # 1. 이닝 >= 9
     # 2. 아웃 = 3
     # 3-1. 초 & 점수 홈>어웨이
     # 3-2. 말 & 점수 어웨이>홈
+
     def check_game_over(self):
         # 종료 조건
         if self.game_status['inning'] >= 9:
@@ -498,8 +506,8 @@ class BallGame:
                         return True
         return False
 
-
     # 이닝 변경
+
     def go_to_next_inning(self):
         if self.game_status['strikes'] == 3:
             self.game_status['strikes'] = 2
@@ -563,26 +571,95 @@ class BallGame:
     def go_to_next_pa(self):
         # 이전 타석의 결과물을 print한다.
         # 타석 관련 데이터를 reset한다. 볼, 스트, 아웃 등
-        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B(IBB 포함) (4)HBP (5) 자동 고의4구
+        # 타석 종료된 경우: (1) inplay (2) 3S (3) 4B(IBB 포함)
+        #                   (4)HBP (5) 자동 고의4구
         #     이럴 때는 이전 타석 결과를 print한다.
         # 그 밖의 경우: 타석 도중 교체
         #     타석 데이터 reset 없이 true만 반환한다.
         
-        # BUGBUG: 자동 고의4구 직전 투구 기록되지 않음
+        # BUGBUG : 자동 고의4구 직전 투구 기록되지 않음
         # 20180720WONC02018 스크럭스 8회말 타석
         # print_row()를 실행하지 않음(ibb()로 game_status에 pa_result만 기록함)
         #   자동 고의4구를 새로운 결과로 추가(기존: 고의4구만 존재)
         #   타석 종료된 경우 (5) 자동 고의4구 추가
         if self.made_errors is True:
-            # 2018/8/12 : 실책 출루인데 포스 아웃으로 기록되는 사례(20180812HTSK0)
+            # BUGBUG : 실책 출루인데 포스 아웃으로 기록되는 사례
+            # - 시작일 : 20180812
+            # - 종료일 : 20180812
+            #
+            # CASE :
+            # 20180812HTSK0 1회초 KIA 공격, 3번 최형우 타석
+            # 최형우 2루수 땅볼로 출루
+            # parse_pa_result에서 force_out 처리되지만
+            # 이후 텍스트를 보면 실책으로 무사 출루함.
+            #
+            # 실제 텍스트(순서대로)
             # 최형우 : 2루수 앞 땅볼로 출루
             # 1루주자 최형우 : 실책으로 2루까지 진루
             # 1루주자 이명기 : 2루수 실책으로 2루까지 진루(2루수 실책->유격수)
             # 2루주자 이명기 : 주자의 재치로 3루까지 진루
             # 2루주자 버나디나 : 3루까지 진루
             # 3루주자 버나디나 : 실책으로 홈인
+            #
+            # OBJECT : 아웃 없는 경우 실책 출루였던 것으로 판정.
+            #
+            # 아래 추가 BUG 확인으로 로직 수정.
             if (self.made_outs is False) and (self.game_status['pa_result'] != '실책'):
-                self.game_status['pa_result'] = '실책'
+                # BUGBUG : 실책 아닌데 실책으로 기록되는 경우
+                # - 시작일 : 20190706
+                # - 종료일 : 20190706
+                #
+                # CASE :
+                # 크게 2가지가 있다.
+                # (1) 인플레이/볼넷/삼진 이후 실책 발생
+                #  -> 타석 결과가 실책으로 수정
+                # (2) 타석 도중 상황 발생, 그 과정에서 실책으로 이닝 종료
+                #  -> 타석이 끝나지 않았음에도 타석 결과 기록(실책으로)
+                #
+                # (1)의 경우 : 케이스가 아주 많음.
+                # 20190410SKHH 3회초 SK 공격, 9번 김성현 타석
+                # 내야안타 기록, 이후 실책으로 추가 진루
+                # -> 내야안타가 아닌 실책으로 기록됨.
+                #
+                # (2)의 경우: 케이스가 많지만 2가지가 있음.
+                # 20190410NCHT 2회말 KIA 공격, 9번 박찬호 타석
+                # 포수가 2루 견제, 견제구 빠짐, 2루주자 3루행
+                # 뒤늦게 출발한 1루주자 2루에서 태그아웃
+                # -> 타석 결과가 없고 '실책'이 아님에도 '실책' 기록
+                #
+                # 20190410OBLT 1회초 두산 공격, 5번 페르난데스 타석
+                # 볼넷이 나왔는데 폭투성 투구
+                # 포수가 공 빠트리고 3루주자 홈인, 투수 실책 기록
+                # -> 사실상 포일이고 결과는 볼넷이지만 실책으로 정정
+                #
+                # OBJECT : 다양한 사례 고려해 로직 수정.
+                #
+                # 20180812 BUG까지 고려해야 한다.
+                #
+                # 이 분기로 오는 건 made_errors가 True로 기록됐기 때문인데
+                # made_errors가 True가 되는 경로는 세 가지다.
+                # (1) 타자주자가 각종 타구 실책으로 출루.(roe)
+                # (2) 타자주자가 희생번트 실책으로 출루.(sac_hit_error)
+                # (3) 주자 처리 중 실책 텍스트 발견.(parse_runner)
+                #
+                # 여기서 실제 실책은 1, 2고
+                # 이 경우 game_status의 pa_result가 이미
+                # '실책' 혹은 '희생번트 실책'이 되어 있다.
+                #
+                # 문제는 3인데,
+                # '실책으로 출루'는 2018년쯤부터 2개 라인으로 나눠 처리한다.
+                # '땅볼로 출루' -> 다음 텍스트에서 '실책으로 출루'
+                # 이런 순서로 말이다.
+                # 이 경우 parse_pa_result에서 force_out으로 처리되고
+                # pa_result가 '포스 아웃'으로 되어 있다.
+                # -> 이것은 실책 출루로 처리해야 한다.
+                #
+                # 그렇다면 나머지 사례는?
+                # 정상적인 안타, 볼넷, 삼진, 희생플라이 등인데
+                # 이후 주루 상황에서 실책이 발생한 것이다.
+                # -> 이것은 실책으로 처리하면 안된다.
+                if (self.game_status['pa_result'] == '포스 아웃'):
+                    self.game_status['pa_result'] = '실책'
         if self.made_in_play is True:
             self.print_row()
             # self.print_row_debug()
@@ -601,13 +678,13 @@ class BallGame:
                 self.print_row()
                 # self.print_row_debug()
             elif self.game_status['pa_result'].find('자동') > -1:
-                #   타석 종료된 경우 (5) 자동 고의4구 추가
+                # 타석 종료된 경우 (5) 자동 고의4구 추가
                 self.print_row()
                 # self.print_row_debug()
         elif self.rain_delay is True:
             if self.ball_and_not_hbp is True:
-            # 연속으로 볼이 들어왔을 때
-            # 사구가 아니라면 앞선 볼 상황을 출력
+                # 연속으로 볼이 들어왔을 때
+                # 사구가 아니라면 앞선 볼 상황을 출력
                 self.game_status['balls'] -= 1
                 self.print_row()
             # self.print_row_debug()
@@ -641,6 +718,7 @@ class BallGame:
             if self.change_1b is True:
                 self.game_status['on_1b'] = self.next_1b
 
+        self.reset_pfx()
         self.game_status['pa_result'] = None
         self.game_status['pitch_result'] = None
         self.game_status['pitch_number'] = 0
@@ -1225,8 +1303,24 @@ def parse_pa_result(text, ball_game):
     elif result.find('낫 아웃') >= 0:
         ball_game.not_out()
     elif result.find('낫아웃 다른주자 수비') >= 0:
-        # 실책 기록
-        ball_game.roe()
+        # BUGBUG : 낫아웃 + 포스아웃인데 전부 실책 기록
+        #
+        # - 시작일 : 20190706
+        # - 종료일 : 20190706
+        #
+        # CASE :
+        # 20170829SKWO0 4회말 넥센 공격, 4번 김하성 타석
+        # 낫아웃 이후 홈을 터치해서 포스 아웃
+        # 하지만 '낫아웃 다른주자 수비' 텍스트를
+        # 전부 실책으로 기록하고 있었음.
+        #
+        # OBJECT :
+        # '실책' 발견되는 경우에만 실책 기록
+        # 나머지는 포스 아웃
+        if result.find('실책') >= 0:
+            ball_game.roe()
+        else:
+            ball_game.force_out()
     elif result.find('낫아웃') >= 0:
         ball_game.not_out()
     elif result.find('땅볼로 출루') >= 0:
@@ -1285,6 +1379,9 @@ def parse_pa_result(text, ball_game):
 
 
 def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, bid, pts_data):
+    # B/S/O 오류 있는 경우
+    # 에러메시지 리턴하고 종료
+    # 볼 > 3 or 스트라이크 > 2 or 아웃 > 2인 경우
     if ball_game.game_status['balls'] > 3:
         rc = 'balls > 3 - text : {}\n'.format(text)
         rc += '{}회 {}:{} 타석 {}구'.format(
@@ -1313,6 +1410,8 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         )
         return rc
 
+    # 투구수가 앞선 텍스트와 같은 경우
+    # parse 오류로 판단, 에러메시지 리턴하고 종료
     if pitch_num == ball_game.game_status['pitch_number']:
         # relay error
         rc = 'same pitch number - text : {}\n'.format(text)
@@ -1331,6 +1430,40 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
         ball_game.print_row()
         # ball_game.print_row_debug()
         ball_game.game_status['balls'] += 1
+
+    if ball_game.made_runs is True:
+        # BUGBUG : 초구 전에 견제실책/보크/홈스틸 등으로 득점 발생시 row 출력 필요
+        # - 시작일 : 20190706
+        # - 종료일 : 20190706
+        #
+        # CASE :
+        # 20190608HTNC0 4회말 NC 공격, 1번 박민우 타석
+        # 초구 전에 견제 실책으로 2명 홈인
+        #
+        # 초구 전에 견제 실책으로 홈인이 발생하는 경우.
+        # 직전 타석 결과로 정확하게 몇 점이 났는지
+        # 지금은 기록하지 않고 있기 때문에(after play score)
+        # 다음 타석에서 바로 견제로 홈인이 나는 경우
+        # 이전 play로 생긴 run 계산에 오차가 생긴다.
+        #
+        # 아마도 초구 전 홈스틸/보크도 가능.
+        #
+        # OBJECT :
+        # 투구 이외 요인으로 초구 전에 득점 발생하는 경우 row로 기록
+        # 투구 데이터와 구분
+        if ball_game.game_status['pitch_number'] == 0:
+            # ball_game.print_row_debug()
+            # handle pts data
+            ball_game.game_status['pa_result'] = '투구 외 득점'
+            ball_game.reset_pfx()
+            ball_game.print_row()
+            ball_game.game_status['pa_result'] = 'None'
+        if ball_game.game_status['inning_top_bot'] is 0:
+            ball_game.game_status['score_away'] += ball_game.runs_how_many
+        else:
+            ball_game.game_status['score_home'] += ball_game.runs_how_many
+        ball_game.made_runs = False
+        ball_game.runs_how_many = 0
 
     ball_game.game_status['pitch_number'] += 1
     ball_game.ball_and_not_hbp = False
@@ -1362,14 +1495,6 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
     if ball_game.made_errors is True:
         ball_game.made_errors = False
 
-    if ball_game.made_runs is True:
-        if ball_game.game_status['inning_top_bot'] is 0:
-            ball_game.game_status['score_away'] += ball_game.runs_how_many
-        else:
-            ball_game.game_status['score_home'] += ball_game.runs_how_many
-        ball_game.made_runs = False
-        ball_game.runs_how_many = 0
-
     pitch = pitch_pattern.search(text)
     if pitch is None:
         if ibb_pattern.search(text) is not None:
@@ -1384,14 +1509,14 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
             )
             return rc
     if ibb_pattern.search(text) is not None:
-        result = 'AI' # 자동 고의4구
+        result = 'AI'  # 자동 고의4구
     else:
         result = pitch.group().split(' ')[1]
 
+    #  투수 교체된 경우
+    #  change pid
+    #  change throws
     if ball_game.prev_pid != pid:
-        # 투수 교체된 경우
-        # change pid
-        # change throws
         ball_game.game_status['pitcher_ID'] = pid
         throws = None
         if ball_game.game_status['inning_top_bot'] == 0:
@@ -1567,6 +1692,18 @@ def parse_runner(text, ball_game):
     if result.find('실책') > 0:
         ball_game.made_errors = True
 
+    # BUGBUG : 볼넷/삼진 이후 실책으로 득점시 row print
+    # - 시작일 : 20190706
+    # - 종료일 : 미정
+    #
+    # 볼넷/삼진 이후 실책(폭투 등)으로 득점시
+    # run value 계산할 때 play result에 따른 run scored 값이
+    # 왜곡될 여지가 있다.
+    #
+    # WORKAROUND :
+    #   run scored 값 계산할 때
+    #   조건을 잘 걸어주면 해결 가능
+
     return True
 
 
@@ -1739,8 +1876,8 @@ def parse_batter(text, home_batters, away_batters, bid, ball_game):
         return rc
     '''
 
-    ball_game.game_status['batter'] = result
     # 초/말에 따라 타자 검색, 치는손 기록
+    ball_game.game_status['batter'] = result
     if ball_game.game_status['inning_top_bot'] == 0:
         for b in away_batters:
             if b['pCode'] == bid:
@@ -1770,72 +1907,75 @@ def parse_text(text, text_type, ball_game, game_over,
             return rc + '\ntext : {}'.format(text)
         else:
             return True
-    elif text_type == 1:
+    elif text_type == 1:  # 투구
         rc = parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, bid, pts_data)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 2:
+    elif text_type == 2:  # 교체
         rc = parse_change(text, ball_game)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 7:
+    elif text_type == 7:  # 시스템 메시지
         # system text
         # BUGBUG : 우천중단으로 종료시 마지막 공 출력 안됨
         # 20180809SKNC02018
-        #       경기종료
-        #       8번타자 나주환
-        #          (22:34~23:14분) 우천으로 40분간 경기중단.
-        #         - 4구 볼
-        #         - 3구 볼
-        #          - 2구 스트라이크
-        #         - 1구 볼
+        #      경기종료
+        #      8번타자 나주환
+        #        (22:34~23:14분) 우천으로 40분간 경기중단.
+        #        - 4구 볼
+        #        - 3구 볼
+        #        - 2구 스트라이크
+        #        - 1구 볼
         # '우천 중단' 텍스트 출력 후 경기 종료하는 경우의 flag 필요
-        # 여기서 flag 세우고, 다음 text에서 종료(text_type == 99)일 때 flag 확인
-        # game over 하기 전에 pa_result 안 정해진 row 남아있으면 출력.
+        # 여기서 flag 세우고
+        # 다음 text에서 종료(text_type == 99)일 때 flag 확인
+        # game over 하기 전에
+        # pa_result 안 정해진 row 남아있으면 출력.
         if (text.find('우천') > 0) & (text.find('중단') > 0):
             ball_game.rain_delay = True
         return True
-    elif text_type == 8:
+    elif text_type == 8:  # 타자 이름
         # batter name
         parse_batter(text, home_batters, away_batters, bid, ball_game)
         return True
-    elif text_type == 13:
+    elif text_type == 13:  # 타자 타석 결과
         rc = parse_pa_result(text, ball_game)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 14:
+    elif text_type == 14:  # 주자 이동/아웃
         rc = parse_runner(text, ball_game)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 23:
+    elif text_type == 23:  # 타자주자 홈인
         # bat-runner with home-in
         rc = parse_pa_result(text, ball_game)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 24:
+    elif text_type == 24:  # 주자 홈인
         # base-runner with home-in
         rc = parse_runner(text, ball_game)
         if type(rc) is str:
             return rc
         else:
             return True
-    elif text_type == 44:
+    elif text_type == 44:  # 파울 에러
         # foul error; pass
         return True
-    elif text_type == 99:
+    elif text_type == 99:  # 경기 종료 메시지
         # game end
         # 정상 종료일 때만 여기로 이동
-        # 끝내기, 비정상 종료는 상위 parse_game에서 check_game_over를 통해 판단
+        # 끝내기, 비정상 종료는
+        # 상위 parse_game에서 check_game_over를 통해 판단
         # 정상 종료가 아닌 경우 @go_to_next_pa로 이동, game_over 확인
         game_over[0] = True
         return True
@@ -1855,7 +1995,7 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'x0', 'z0', 'sz_top', 'sz_bot', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9', 'game_date', 'home', 'away',
               'stadium', 'referee', 'pa_number', 'pitch_number',
-              'y0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'pitchID'] # raw data 추가
+              'y0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'pitchID']  # raw data 추가
 
 
 def parse_game(game, lm=None, month_file=None, year_file=None):
@@ -1915,7 +2055,7 @@ def parse_game(game, lm=None, month_file=None, year_file=None):
 
         pts_dict = {}
         if len(ptsOptionList) > 0:
-            pts_dict = {x['pitchId']:x for x in ptsOptionList}
+            pts_dict = {x['pitchId']: x for x in ptsOptionList}
 
         for i in range(len(textOptionList)):
             text = textOptionList[i]['text']

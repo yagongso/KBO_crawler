@@ -60,7 +60,7 @@ playoff_start = {
     '2016': '1021',
     '2017': '1010',
     '2018': '1015',
-    '2019': '1015',
+    '2019': '1003',
 }
 
 teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
@@ -315,12 +315,11 @@ def download_relay(args, lm=None):
                     json.dump(txt, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
                     
-                    '''
                     ##### 텍스트만 저장
                     text_list = []
                     pts_list = []
-                    text_list_header = 'textOrder,textType,text,ptsPitchId,stuff,speed'
-                    pts_list_header = 'textOrder,inn,ballcount,crossPlateX,topSz,crossPlateY,pitchId,vy0,vz0,vx0,z0,y0,ax,x0,ay,az,bottomSz,stance'
+                    text_list_header = ["textOrder","textType","text","ptsPitchId","stuff","speed"]
+                    pts_list_header = ["textOrder","inn","ballcount","crossPlateX","topSz","crossPlateY","pitchId","vy0","vz0","vx0","z0","y0","ax","x0","ay","az","bottomSz","stance"]
                     for k in sorted(txt['relayList'].keys()):
                         textset = txt['relayList'][k]
                         textOptionList = textset['textOptionList']
@@ -359,7 +358,6 @@ def download_relay(args, lm=None):
                         cf.writerow(pl)
                     fp.close()
                     #####
-                    '''
 
                     done += 1
                 else:
