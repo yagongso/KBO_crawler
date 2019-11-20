@@ -27,6 +27,15 @@ if importlib.util.find_spec('pygam') is not None:
 Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파울 번트헛스윙')
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
+BallColors = {'직구':'#ff0000',
+              '슬라이더':'#92d050',
+              '커브':'#00b0f0',
+              '포크':'#9933ff',
+              '체인지업':'#ffcc00',
+              '투심':'#969696',
+              '싱커':'#ff99cc',
+              '커터':'#00cc99',
+              '너클볼':'#ffffff'}
 
 
 def fmt(x, pos):
@@ -1159,3 +1168,69 @@ def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
         ax.set_title(title, fontsize='xx-large')
     
     return fig, ax
+
+
+def break_plot(df, player, mode=0, ax=None):
+    # Mode :
+    # 0 for yearly
+    # 1 for monthly
+    target = df.loc[df.pitcher == player]
+    if target.shape[0] == 0:
+        return
+    else:
+        pitch_types = target.pitch_type.drop_duplicates()
+        
+        target = target.assign(month = target.game_date.apply(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d').month))
+        
+        plt.style.use('fivethirtyeight')
+        
+        dpi = ax.figure.dpi if ax is not None else 100
+        if ax is None:
+            _, ax = plt.subplots(figsize=(5,5), dpi=100)
+
+        dots_by_type = []
+        labels = []
+                
+        if mode == 0:
+            for p in BallColors.keys():
+                t = target.loc[target.pitch_type == p]
+                s = t.shape[0]
+                if s == 0:
+                    continue
+
+                dots_by_type.append(ax.scatter(t.pfx_x.mean(), t.pfx_z.mean(),
+                                               s=dpi*2,
+                                               c=BallColors[p]))
+                labels.append(p)
+        
+            ax.set_title(f'{player} Break Plot, Yearly', fontsize='xx-large')
+        else:
+            color_added = {p: False for p in pitch_types}
+            for m in target.month.drop_duplicates():
+                for p in BallColors.keys():
+                    t = target.loc[target.pitch_type == p]
+                    if t.shape[0] == 0:
+                        continue
+                    t_part = t.loc[t.month == m]
+                    if t_part.shape[0] == 0:
+                        continue
+                    x = t_part.pfx_x.mean()
+                    y = t_part.pfx_z.mean()
+                    s = t_part.shape[0]
+                    
+                    if color_added[p] is False:
+                        dots_by_type.append(ax.scatter(x, y, s=dpi*2, c=BallColors[p]))
+                        labels.append(p)
+                        color_added[p] = True
+                    else:
+                        ax.scatter(x, y, s=dpi*2, c=BallColors[p])
+                    
+                plt.gca().set_prop_cycle(None)
+            ax.set_title(f'{player} Break Plot, Monthly', fontsize='xx-large')
+        
+        ax.set_xlim(-12,12)
+        ax.set_ylim(-14,14)
+        
+        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', bbox_to_anchor=(0.5, -0.35))
+        
+        return ax
