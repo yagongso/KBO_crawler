@@ -8,6 +8,7 @@ import numpy.random
 import matplotlib.ticker as ticker
 import matplotlib.dates as mdates
 import matplotlib.cm as cm
+from matplotlib.patches import Ellipse
 from matplotlib import font_manager as fm, rc
 from IPython.display import HTML
 from IPython.display import display, Audio
@@ -1170,10 +1171,14 @@ def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
     return fig, ax
 
 
-def break_plot(df, player, mode=0, ax=None):
+def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
     # Mode :
-    # 0 for yearly
-    # 1 for monthly
+    #   0 for yearly
+    #   1 for monthly
+    # show_dots :
+    #   True for show every dot
+    #   False for only ellipse
+    plt.style.use('fivethirtyeight')
     target = df.loc[df.pitcher == player]
     if target.shape[0] == 0:
         return
@@ -1181,8 +1186,6 @@ def break_plot(df, player, mode=0, ax=None):
         pitch_types = target.pitch_type.drop_duplicates()
         
         target = target.assign(month = target.game_date.apply(lambda x: datetime.datetime.strptime(str(x), '%Y%m%d').month))
-        
-        plt.style.use('fivethirtyeight')
         
         dpi = ax.figure.dpi if ax is not None else 100
         if ax is None:
@@ -1192,18 +1195,41 @@ def break_plot(df, player, mode=0, ax=None):
         labels = []
                 
         if mode == 0:
+            maxfreq = target.groupby('pitch_type').size().max() / len(target)
+            
             for p in BallColors.keys():
                 t = target.loc[target.pitch_type == p]
+                freq = len(t) / len(target)
+                alpha = freq / maxfreq * .8
+                alpha2 = min(1, freq*2+.25)
                 s = t.shape[0]
                 if s == 0:
                     continue
 
-                dots_by_type.append(ax.scatter(t.pfx_x.mean(), t.pfx_z.mean(),
-                                               s=dpi*2,
-                                               c=BallColors[p]))
+                width = t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)
+                height = t.pfx_z.quantile(.5+span/2) - t.pfx_z.quantile(.5-span/2)
+                c1, c2 = t.pfx_x.median(), t.pfx_z.median()
+                color = BallColors[p]
+
+                ellipse1 = Ellipse((c1, c2), width, height,
+                                   ec=color, fc=color, lw=1,
+                                   alpha=alpha, zorder=2)
+                ellipse2 = Ellipse((c1, c2), width, height,
+                                   ec=color, fc='#f0f0f0', lw=1,
+                                   alpha=.5, zorder=1)
+                if show_dots:
+                    ax.scatter(t.pfx_x, t.pfx_z, alpha=0.25, c=color, s=dpi*.5, zorder=2)
+
+                ax.add_patch(ellipse1)
+                ax.add_patch(ellipse2)
+
+                ax.scatter(c1, c2, alpha=alpha2, s=dpi*.5, zorder=2, c=color)
+                dots_by_type.append(ax.scatter(-100, -100,
+                                               s=dpi*2, zorder=-1, c=color))
+
                 labels.append(p)
         
-            ax.set_title(f'{player} Break Plot, Yearly', fontsize='xx-large')
+            ax.set_title(f'{player} Yearly Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
             for m in target.month.drop_duplicates():
@@ -1226,11 +1252,94 @@ def break_plot(df, player, mode=0, ax=None):
                         ax.scatter(x, y, s=dpi*2, c=BallColors[p])
                     
                 plt.gca().set_prop_cycle(None)
-            ax.set_title(f'{player} Break Plot, Monthly', fontsize='xx-large')
+            ax.set_title(f'{player} Monthly Break Plot')
         
-        ax.set_xlim(-12,12)
-        ax.set_ylim(-14,14)
+        ax.set_xlim(-14,14)
+        ax.set_ylim(-18,18)
         
-        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', bbox_to_anchor=(0.5, -0.35))
+        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small')
         
         return ax
+
+
+def pitchtype_plot(df, pitcher, ax=None):
+    plt.style.use('fivethirtyeight')
+    target = df.loc[df.pitcher == pitcher]
+    if target.shape[0] == 0:
+        return
+    else:
+        g = target.groupby('pitch_type').size().sort_values(ascending=False) / len(target) * 100
+        mean = target.groupby('pitch_type').speed.mean()
+
+    dpi = 100
+
+    if (ax is None) or (len(ax) != 2):
+        _, ax = plt.subplots(1, 2, figsize=(10, 5), dpi=100)
+    else:
+        dpi = ax[0].figure.dpi
+
+    sns.barplot(x=g.values, y=g.index, palette=BallColors, ax=ax[0])
+
+    sns.boxplot(y=target['pitch_type'],
+                x=target['speed'],
+                fliersize=0,
+                width=0.5,
+                palette=BallColors,
+                linewidth=1,
+                saturation=1,
+                order=g.index,
+                showmeans=True,
+                meanprops=dict(marker='o', markeredgecolor='black', markerfacecolor='white'),
+                ax=ax[1])
+
+    ylabels = list(x.get_text() for x in ax[1].get_ymajorticklabels())
+    for i in ax[1].get_yticks():
+        p = ylabels[i]
+        ax[1].text(float(mean[p])-2.5, i-0.3, f'{float(mean[p]):.1f}', fontsize='small')
+
+    ylabels = list(x.get_text() for x in ax[0].get_ymajorticklabels())
+    for i in ax[0].get_yticks():
+        p = ylabels[i]
+        if g[p] < 10:
+            ax[0].text(g[p]+4.5, i, f'{float(g[p]):.0f}%')
+        else:
+            ax[0].text(min(g[p]+6, 56), i, f'{float(g[p]):.0f}%')
+
+    ax[0].set_xlim(0, 50)
+    ax[0].yaxis.set_ticks_position('right')
+    ax[0].yaxis.set_ticks([])
+    ax[0].invert_xaxis()
+    ax[0].set_ylabel('')
+
+    newtick = list(str(int(x)) for x in ax[0].get_xticks())
+    i = -1
+    while True:
+        if int(newtick[i]) > 50:
+            i = i - 1
+            continue
+        else:
+            newtick[i] = f'{newtick[i]}%'
+            break
+    newtick[0] = ''
+    ax[0].set_xticklabels(newtick)
+
+    ax[1].set_xlim(100, 160)
+    ax[1].set_ylabel('')
+    ax[1].set_xlabel('')
+
+    newtick = list(str(int(x)) for x in ax[1].get_xticks())
+    i = -1
+    while True:
+        if int(newtick[i]) > 160:
+            i = i - 1
+            continue
+        else:
+            newtick[i] = f'{newtick[i]}km/h'
+            break
+    newtick[0] = ''
+    ax[1].set_xticklabels(newtick)
+
+    ax[0].set_title(f'{pitcher} Pitch Type Frequency')
+    ax[1].set_title(f'{pitcher} Speed')
+
+    return ax
