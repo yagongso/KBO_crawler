@@ -30,6 +30,7 @@
 
 # GUI 사용법
 <img src="https://raw.githubusercontent.com/yagongso/KBO_crawler/master/gui.png">
+
 - `python gui.py` 입력하면 창이 뜸
 - 사용법은 다를거 없음
 - 원래 진행상황 바가 밑에 차곡차곡 업데이트되어야 하는데
