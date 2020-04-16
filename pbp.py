@@ -7,10 +7,11 @@ from download import download_pbp_files
 
 def getTracebackStr():
     lines = traceback.format_exc().strip().split('\n')
+    rl = [lines[-1]]
+    lines = lines[1:-1]
     lines.reverse()
-    rl = []
-    for line in lines:
-        rl.append(line)
+    for i in range(0, len(lines), 2):
+        rl.append(f'    {lines[i].strip()} at {lines[i+1].strip()}')
     return '\n'.join(rl)
 
 
