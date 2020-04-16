@@ -6,7 +6,7 @@ import scipy as sp
 from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 from IPython.display import display, Audio
-from pfx_plot import clean_data
+from pbp_plot import clean_data
 from matplotlib.colors import ListedColormap
 
 import importlib
@@ -55,11 +55,13 @@ def get_re24(df):
                                          'base', 'outs', 'count', 0).sort_index(ascending=False)
     
     # 이닝 최대 점수
-    rg = pa_res.groupby(['game_date', 'home', 'away',
-                         'inning', 'inning_topbot'])['score_away', 'score_home']
+    g1 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_away
+    g2 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          rg.transform(max).score_away,
-                                                          rg.transform(max).score_home))
+                                                          g1.transform(max),
+                                                          g2.transform(max)))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',
@@ -118,11 +120,13 @@ def get_rv_event(df):
                                          'base', 'outs', 'count', 0).sort_index(ascending=False)
     
     # 이닝 최대 점수
-    rg = pa_res.groupby(['game_date', 'home', 'away',
-                         'inning', 'inning_topbot'])['score_away', 'score_home']
+    g1 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_away
+    g2 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          rg.transform(max).score_away,
-                                                          rg.transform(max).score_home))
+                                                          g1.transform(max),
+                                                          g2.transform(max)))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',
@@ -189,22 +193,30 @@ def get_rv_event_simple(df):
     so = '삼진'
     forceout = '포스 아웃'
     fieldout = ['필드 아웃', '타구맞음 아웃']
+    outs = ['필드 아웃', '타구맞음 아웃', '포스 아웃']
     sfly = '희생플라이'
     shhit = '희생번트'
 
     events_short = ['내야안타', '1루타', '번트 안타', '2루타', '3루타', '홈런', '병살타', '자동 고의4구', '고의4구',
                     '볼넷', '삼진', '포스 아웃', '필드 아웃', '타구맞음 아웃', '희생플라이', '희생번트']
-    t = df[columns_needed]
+    t = df.loc[df.outs < 3][columns_needed]
     t = t.assign(play_run_home = t.score_home.shift(-1) - t.score_home,
                  play_run_away = t.score_away.shift(-1) - t.score_away)
     t.play_run_away = t.play_run_away.fillna(0)
     t.play_run_home = t.play_run_home.fillna(0)
+    
+    # 자동고의4구, 고의4구 하나로 합친다
+    t = t.assign(pa_result = np.where(t.pa_result == '자동 고의4구',
+                                      '고의4구', t.pa_result))
     
     # 단타 종류는 모두 1루타로 축약
     t = t.assign(pa_result2 = np.where(t.pa_result.isin(single), '1루타',
                                        np.where(t.pa_result.isin(fieldout),
                                                 '필드 아웃',
                                                 t.pa_result)))
+    # 필드아웃 포스아웃은 모두 그냥 아웃으로 축약
+    t = t.assign(pa_result2 = np.where(t.pa_result2.isin(outs),
+                                       '아웃', t.pa_result2))
     
     t = t.assign(play_run = np.where((t.inning_topbot == '말') &
                                      (t.pa_result != 'None'),
@@ -227,10 +239,6 @@ def get_rv_event_simple(df):
     # simple 데이터로 필터
     pa_res = pa_res.loc[pa_res.pa_result.isin(events_short)]
     
-    # 자동고의4구, 고의4구 하나로 합친다
-    pa_res = pa_res.assign(pa_result = np.where(pa_res.pa_result == '자동 고의4구',
-                                                '고의4구', pa_res.pa_result))
-    
     # base 할당
     pa_res = pa_res.assign(base1 = np.where(pa_res.on_1b != 'None', '1', '_'),
                            base2 = np.where(pa_res.on_2b != 'None', '2', '_'),
@@ -245,11 +253,13 @@ def get_rv_event_simple(df):
                                          'base', 'outs', 'count', 0).sort_index(ascending=False)
     
     # 이닝 최대 점수
-    rg = pa_res.groupby(['game_date', 'home', 'away',
-                         'inning', 'inning_topbot'])['score_away', 'score_home']
+    g1 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_away
+    g2 = pa_res.groupby(['game_date', 'home', 'away',
+                         'inning', 'inning_topbot']).score_home
     pa_res = pa_res.assign(max_score_in_inning = np.where(pa_res.inning_topbot == '초',
-                                                          rg.transform(max).score_away,
-                                                          rg.transform(max).score_home))
+                                                          g1.transform(max),
+                                                          g2.transform(max)))
 
     # 해당 플레이 이후 그 이닝에서 발생하는 점수
     pa_res = pa_res.assign(runs_scored_after_play = np.where(pa_res.inning_topbot == '초',

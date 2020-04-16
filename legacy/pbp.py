@@ -1,28 +1,28 @@
-# pfx.py
+# pbp.py
 # Play-By-Play 데이터를 JSON 형식으로 다운로드받고, 파싱해서 CSV 파일로 변환&저장한다.
 # get batted ball data in JSON form & convert to CSV files
 
 from utils import get_args
-from pfx_parse import parse_main
-from pfx_download import download_relay, download_pfx
+from pbp_parse import parse_main
+from pbp_download import *
 import logManager
 
 
 def run_pbp_download(args, lm=None):
-    download_relay(args, lm)
+    download_relay2(args, lm)
 
 
 def run_pbp_parser(args, lm=None):
     parse_main(args, lm)
 
 
-def run_pfx_download(args, lm=None):
-    download_pfx(args, lm)
+def run_pitch_data_only_download(args, lm=None):
+    download_pitch_data_only(args, lm)
 
 
 if __name__ == "__main__":
     args = []  # m_start, m_end, y_start, y_end
-    options = []  # onlyConvert, onlyDownload, onlyPFXDownload
+    options = []  # onlyConvert, onlyDownload, onlyPitchDataDownload
     parser = get_args(args, options)
 
     # option : -c, -d, -p
@@ -35,9 +35,9 @@ if __name__ == "__main__":
         run_pbp_download(args, download_lm)
         download_lm.killLogManager()
     elif (options[0] is False) & (options[1] is False) & (options[2] is True):
-        pfx_lm = logManager.LogManager()  # background logger
-        run_pfx_download(args, pfx_lm)
-        pfx_lm.killLogManager()
+        pbp_lm = logManager.LogManager()  # background logger
+        run_pitch_data_only_download(args, pbp_lm)
+        pbp_lm.killLogManager()
     elif (options[0] is False) & (options[1] is False) & (options[2] is False):
         print('choose at least one option!\n')
         parser.print_help()

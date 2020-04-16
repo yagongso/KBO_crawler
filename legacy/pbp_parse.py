@@ -1,4 +1,4 @@
-# pfx_parse.py
+# pbp_parse.py
 #
 # parse JSON, make game structure, convert to CSV.
 # JSON 데이터를 읽어와 게임 상황을 구현하고
@@ -94,7 +94,7 @@ class BallGame:
         'on_2b': None,
         'on_3b': None,
 
-        # pfx data
+        # pitch data
         'pitch_type': None,
         'speed': None,
         'px': None,
@@ -196,7 +196,7 @@ class BallGame:
     prev_pid = None
     made_errors = False
 
-    def reset_pfx(self):
+    def reset_pitch_data(self):
         self.game_status['pitch_type'] = None
         self.game_status['speed'] = None
         self.game_status['px'] = None
@@ -248,7 +248,7 @@ class BallGame:
         self.game_status['on_2b'] = None
         self.game_status['on_3b'] = None
 
-        self.reset_pfx()
+        self.reset_pitch_data()
 
         self.game_status['home'] = None
         self.game_status['away'] = None
@@ -729,7 +729,7 @@ class BallGame:
             if self.change_1b is True:
                 self.game_status['on_1b'] = self.next_1b
 
-        self.reset_pfx()
+        self.reset_pitch_data()
         self.game_status['pa_result'] = None
         self.game_status['pitch_result'] = None
         self.game_status['pitch_number'] = 0
@@ -1546,7 +1546,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
             # ball_game.print_row_debug()
             # handle pts data
             ball_game.game_status['pa_result'] = '투구 외 득점'
-            ball_game.reset_pfx()
+            ball_game.reset_pitch_data()
             ball_game.print_row()
             ball_game.game_status['pa_result'] = 'None'
         if ball_game.game_status['inning_top_bot'] is 0:
@@ -1632,7 +1632,7 @@ def parse_pitch(text, ball_game, home_pitchers, away_pitchers, pitch_num, pid, b
     ball_game.game_status['batter_ID'] = bid
 
     # handle pts data
-    ball_game.reset_pfx()
+    ball_game.reset_pitch_data()
     if pts_data is not None:
         ball_game.game_status['pitch_type'] = pts_data['stuff']
         ball_game.game_status['speed'] = pts_data['speed']

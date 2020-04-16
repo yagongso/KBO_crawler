@@ -1,4 +1,4 @@
-# pfx_download.py
+# pbp_download.py
 #
 # 'N' gameday crawler
 #
@@ -6,6 +6,7 @@
 # xml 포맷의 데이터에서 원하는 JSON 영역만 추출해온다.
 
 import os
+import sys
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
 import json
@@ -68,7 +69,7 @@ teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
 
 def get_game_ids(args):
     # set url prefix
-    timetable_url = "http://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
+    timetable_url = "https://sports.news.naver.com/kbaseball/schedule/index.nhn?month="
 
     # parse arguments
     mon_start = args[0]
@@ -86,7 +87,9 @@ def get_game_ids(args):
             month_ids = []
             timetable = timetable_url + '{}&year={}'.format(str(month), str(year))
 
-            table_page = urlopen(timetable).read()
+            response = requests.get(timetable)
+            table_page = response.text
+            response.close()
             soup = BeautifulSoup(table_page, 'lxml')
             buttons = soup.findAll('span', attrs={'class': 'td_btn'})
 
@@ -225,7 +228,6 @@ def download_relay(args, lm=None):
                     js = response.json()
                     if isinstance(js, str):
                         js = json.loads(js)
-                        #js = ast.literal_eval(js)
                     last_inning = js['currentInning']
 
                     if last_inning is None:
@@ -387,10 +389,14 @@ def download_relay(args, lm=None):
     return True
 
 
-def download_pfx(args, lm=None):
+def download_relay2(args, lm=None):
     # return True or False
-    pfx_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
-    pfx_header_row = ['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName']
+    relay_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/relayText.nhn'
+    record_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/record.nhn'
+
+    now = datetime.datetime.now()
+    today_year = now.year
+    today_date = int(now.date().strftime('%m%d'))
 
     game_ids = get_game_ids(args)
     if (game_ids is None) or (len(game_ids) == 0):
@@ -404,7 +410,425 @@ def download_pfx(args, lm=None):
     if lm is not None:
         lm.resetLogHandler()
         lm.setLogPath(os.getcwd())
-        lm.setLogFileName('relaypfx_download_log.txt')
+        lm.setLogFileName('relay_download_log.txt')
+        lm.cleanLog()
+        lm.createLogHandler()
+        lm.log('---- Relay Text Download Log ----')
+
+    if not os.path.isdir('pbp_data'):
+        os.mkdir('pbp_data')
+    os.chdir('pbp_data')
+    # path: pbp_data
+
+    print("##################################################")
+    print("######        DOWNLOAD RELAY DATA          #######")
+    print("##################################################")
+
+    for year in game_ids.keys():
+        start1 = time.time()
+        print(" Year {}".format(year))
+        if len(game_ids[year]) == 0:
+            print('month id is empty')
+            print('args: {}'.format(args))
+            if lm is not None:
+                lm.log('month id is empty')
+                lm.log('args : {}'.format(args))
+            os.chdir('../..')
+            return False
+
+        if not os.path.isdir(str(year)):
+            os.mkdir(str(year))
+        os.chdir(str(year))
+        # path: pbp_data/year
+
+        for month in game_ids[year].keys():
+            start2 = time.time()
+            print("  Month {}".format(month))
+            if len(game_ids[year][month]) == 0:
+                print('month id is empty')
+                print('args: {}'.format(args))
+                if lm is not None:
+                    lm.log('month id is empty')
+                    lm.log('args : {}'.format(args))
+                os.chdir('../..')
+                return False
+
+            if not os.path.isdir(str(month)):
+                os.mkdir(str(month))
+            os.chdir(str(month))
+            # path: pbp_data/year/month
+
+            # download
+            done = 0
+            skipped = 0
+            for game_id in game_ids[year][month]:
+                game_id_year = int(game_id[:4])
+                game_id_date = int(game_id[4:8])
+                game_id_team = game_id[8:10]
+                if (game_id_year < 2008) or (game_id_year > 7777):
+                    skipped += 1
+                    continue
+                if (game_id_year == today_year) and (game_id_date > today_date):
+                    skipped += 1
+                    continue
+                if game_id_date < int(regular_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if game_id_date >= int(playoff_start[game_id[:4]]):
+                    skipped += 1
+                    continue
+                if game_id_team not in teams:
+                    skipped += 1
+                    continue
+
+                relay_text_output_file = game_id + '_relay.csv'
+                relay_batting_lineup_file = game_id + '_batting.csv'
+                relay_pitching_lineup_file = game_id + '_pitching.csv'
+                if (int(game_id[:4]) == today_year) &\
+                   (int(game_id[4:6]) == now.month) &\
+                   (int(game_id[6:8]) == now.day):
+                       done = done
+                elif (os.path.isfile(relay_text_output_file)) and \
+                        (os.path.getsize(relay_text_output_file) > 0):
+                    done += 1
+                    if lm is not None:
+                        lm.log('File Duplicate : {}'.format(game_id))
+                    continue
+
+                params = {
+                    'gameId': game_id,
+                    'half': '1'
+                }
+
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+                                  'AppleWebKit/537.36 (KHTML, like Gecko) '
+                                  'Chrome/59.0.3071.115 Safari/537.36',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Host': 'm.sports.naver.com',
+                    'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?&gameId='
+                               + game_id
+                               + '&tab=relay'
+                }
+
+                response = requests.get(relay_url, params=params, headers=headers)
+
+                if (response is not None) & (response.status_code < 400):
+                    txt = {}
+                    js = response.json()
+                    if isinstance(js, str):
+                        js = json.loads(js)
+                    last_inning = js['currentInning']
+
+                    if last_inning is None:
+                        skipped += 1
+                        lm.log('Gameday not found : {}'.format(game_id))
+                        continue
+
+                    txt['relayList'] = {}
+                    for i in range(len(js['relayList'])):
+                        text_index = js['relayList'][i]['no']
+                        txt['relayList'][text_index] = js['relayList'][i]
+                        texts = txt['relayList'][text_index]['textOptionList']
+                        for i in range(len(texts)):
+                            texts[i]['text'].encode('cp949', 'ignore')
+                    txt['homeTeamLineUp'] = js['homeTeamLineUp']
+                    txt['awayTeamLineUp'] = js['awayTeamLineUp']
+
+                    txt['stadium'] = js['schedule']['stadium']
+
+                    response.close()
+
+                    for inn in range(2, last_inning + 1):
+                        params = {
+                            'gameId': game_id,
+                            'half': str(inn)
+                        }
+
+                        response = requests.get(relay_url, params=params, headers=headers)
+                        if response is not None:
+                            js = response.json()
+                            if isinstance(js, str):
+                                js = json.loads(js)
+                            for i in range(len(js['relayList'])):
+                                txt['relayList'][js['relayList'][i]['no']] = js['relayList'][i]
+                                texts = txt['relayList'][js['relayList'][i]['no']]['textOptionList']
+                                for i in range(len(texts)):
+                                    texts[i]['text'].encode('cp949', 'ignore')
+                        else:
+                            skipped += 1
+                            if lm is not None:
+                                lm.log('Cannot get response : {}'.format(game_id))
+
+                        response.close()
+
+                    # get referee
+                    params = {
+                        'gameId': game_id
+                    }
+
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, '
+                                      'like Gecko) Chrome/59.0.3071.115 Safari/537.36',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Host': 'm.sports.naver.com',
+                        'Referer': 'http://m.sports.naver.com/baseball/gamecenter/kbo/index.nhn?gameId='
+                                   + game_id
+                                   + '&tab=record'
+                    }
+
+                    response = requests.get(record_url, params=params, headers=headers)
+
+                    p = regex.compile('(?<=\"etcRecords\":\[)[\\\.\{\}\"0-9:\s\(\)\,\ba-z가-힣\{\}]+')
+                    result = p.findall(response.text)
+                    if len(result) == 0:
+                        txt['referee'] = ''
+                    else:
+                        txt['referee'] = result[0].split('{')[-1].split('":"')[1].split(' ')[0]
+
+                    response.close()
+
+                    ### 필요한 내용 담아서 저장 ###
+                    rl = txt['relayList']
+
+                    tl_keys = []
+                    rl_keys = []
+                    pts_keys = []
+                    for k in rl.keys():
+                        keys = rl.get(k).keys()
+                        for key in keys:
+                            if key in rl_keys:
+                                continue
+                            else:
+                                rl_keys.append(key)
+
+                        for j in range(len(rl.get(k).get('textOptionList'))):
+                            keys = rl.get(k).get('textOptionList')[j].keys()
+                            for key in keys:
+                                if key in tl_keys:
+                                    continue
+                                else:
+                                    tl_keys.append(key)
+                        for j in range(len(rl.get(k).get('ptsOptionList'))):
+                            keys = rl.get(k).get('ptsOptionList')[j].keys()
+                            for key in keys:
+                                if key in pts_keys:
+                                    continue
+                                else:
+                                    pts_keys.append(key)
+
+                    tl_keys_copy = tl_keys.copy()
+                    if 'currentGameState' in tl_keys:
+                        tl_keys_copy.remove('currentGameState')
+                    if 'batterRecord' in tl_keys:
+                        tl_keys_copy.remove('batterRecord')
+                    if 'pitcherResult' in tl_keys:
+                        tl_keys_copy.remove('pitcherResult')
+                    if 'pitchResult' in tl_keys:
+                        tl_keys_copy.remove('pitchResult')
+                    if 'pitchNum' in tl_keys:
+                        tl_keys_copy.remove('pitchNum')
+
+                    ts_set = []
+                    referee = txt['referee']
+                    stadium = txt['stadium']
+                    for k in rl.keys():
+                        for j in range(len(rl.get(k).get('textOptionList'))):
+                            ts = rl.get(k).get('textOptionList')[j]
+
+                            ts_dict = {}
+                            ts_dict['textOrder'] = int(k)
+                            for key in tl_keys_copy:
+                                if key == 'playerChange':
+                                    if ts.get(key) is not None:
+                                        for x in ['outPlayer', 'inPlayer', 'shiftPlayer']:
+                                            if x in ts.get(key).keys():
+                                                ts_dict[x] = ts.get(key).get(x).get('playerId')
+
+                                else:
+                                    ts_dict[key] = None if key not in ts.keys() else ts.get(key)
+                            ts_dict['referee'] = referee
+                            ts_dict['stadium'] = stadium
+                            ts_set.append(ts_dict)
+                    ts_df = pd.DataFrame(ts_set)
+                    ts_df = ts_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
+
+                    pdata_set = []
+                    if len(pts_keys) > 0:
+                        for k in rl.keys():
+                            for j in range(len(rl.get(k).get('ptsOptionList'))):
+                                pdata = rl.get(k).get('ptsOptionList')[j]
+
+                                pdata_dict = {}
+                                pdata_dict['textOrder'] = int(k)
+                                for key in pts_keys:
+                                    pdata_dict[key] = None if key not in pdata.keys() else pdata.get(key)
+                                pdata_dict.pop('crossPlateY')
+                                pdata_dict.pop('y0')
+                                pdata_dict.pop('inn')
+                                pdata_dict.pop('ballcount')
+                                pdata_set.append(pdata_dict)
+
+                        pdata_df = pd.DataFrame(pdata_set)
+                        pdata_df.head()
+                    else:
+                        pdata_df = None
+
+                    if pdata_df is not None:
+                        merge_df = pd.merge(ts_df, pdata_df, how='outer').sort_values(['textOrder', 'seqno'])
+                    else:
+                        merge_df = ts_df.sort_values(['textOrder', 'seqno'])
+
+                    #######################
+                    ### 라인업 다운로드 ###
+                    #######################
+                    lineup_url = 'https://sports.news.naver.com/gameCenter/gameRecord.nhn?category=kbo&gameId='
+                    lurl = lineup_url + game_id
+                    lreq = requests.get(lurl)
+                    lsoup = BeautifulSoup(lreq.text, 'lxml')
+                    lreq.close()
+
+                    scripts = lsoup.find_all('script')
+                    team_names = lsoup.find_all('span', attrs={'class': 't_name_txt'})
+                    away_team_name = team_names[0].contents[0].split(' ')[0]
+                    home_team_name = team_names[1].contents[0].split(' ')[0]
+                    contents = None
+
+                    for tag in scripts:
+                        if len(tag.contents) > 0:
+                            if tag.contents[0].find('DataClass = ') > 0:
+                                contents = tag.contents[0]
+                                start = contents.find('DataClass = ') + 36
+                                end = contents.find('_homeTeam')
+                                oldjs = contents[start:end].strip()
+                                while oldjs[-1] != '}':
+                                    oldjs = oldjs[:-1]
+                                while oldjs[0] != '{':
+                                    oldjs = oldjs[1:]
+                                cont = json.loads(oldjs)
+                                break
+
+                    bbs = cont.get('battersBoxscore')
+                    al = bbs.get('away')
+                    hl = bbs.get('home')
+
+                    pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수', '유': '유격수', '포': '포수', '지': '지명타자',
+                                '一': '1루수', '二': '2루수', '三': '3루수'}
+
+                    homes = []
+                    aways = []
+                    for i in range(len(hl)):
+                        player = hl[i]
+                        name = player.get('name')
+                        pos = player.get('pos')[0]
+                        pCode = player.get('playerCode')
+                        homes.append({'name': name, 'pos': pos, 'pCode': pCode})
+
+                    for i in range(len(al)):
+                        player = al[i]
+                        name = player.get('name')
+                        pos = player.get('pos')[0]
+                        pCode = player.get('playerCode')
+                        aways.append({'name': name, 'pos': pos, 'pCode': pCode})
+
+                    ### 라인업 가져다와서 더하기 ###
+                    hit_columns = ['name', 'pCode', 'posName',
+                                'hitType', 'seqno', 'batOrder']
+                    pit_columns = ['name', 'pCode', 'hitType', 'seqno']
+
+                    atl = txt.get('awayTeamLineUp')
+                    abat = atl.get('batter')
+                    apit = atl.get('pitcher')
+                    abats = pd.DataFrame(abat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+                    apits = pd.DataFrame(apit, columns=pit_columns).sort_values('seqno')
+
+                    htl = txt.get('homeTeamLineUp')
+                    hbat = htl.get('batter')
+                    hpit = htl.get('pitcher')
+                    hbats = pd.DataFrame(hbat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+                    hpits = pd.DataFrame(hpit, columns=pit_columns).sort_values('seqno')
+
+                    for a in aways:
+                        if a.get('pos') == '교':
+                            continue
+                        abats.loc[(abats.name == a.get('name')) &
+                                  (abats.pCode == a.get('pCode')), 'posName'] = pos_dict.get(a.get('pos'))
+
+                    for h in homes:
+                        if h.get('pos') == '교':
+                            continue
+                        hbats.loc[(hbats.name == h.get('name')) &
+                                  (hbats.pCode == h.get('pCode')), 'posName'] = pos_dict.get(h.get('pos'))
+                    abats['homeaway'] = 'a'
+                    hbats['homeaway'] = 'h'
+                    apits['homeaway'] = 'a'
+                    hpits['homeaway'] = 'h'
+                    abats['team_name'] = away_team_name
+                    hbats['team_name'] = home_team_name
+                    apits['team_name'] = away_team_name
+                    hpits['team_name'] = home_team_name
+
+                    bats = pd.concat([abats, hbats])
+                    pits = pd.concat([apits, hpits])
+                    bats.pCode = pd.to_numeric(bats.pCode)
+                    pits.pCode = pd.to_numeric(pits.pCode)
+
+                    ### 저장
+                    if sys.platform == 'win32':
+                        bats.to_csv(relay_batting_lineup_file, index=False, encoding='cp949')
+                        pits.to_csv(relay_pitching_lineup_file, index=False, encoding='cp949')
+                        merge_df.to_csv(relay_text_output_file, index=False, encoding='cp949')
+                    else:
+                        bats.to_csv(relay_batting_lineup_file, index=False)
+                        pits.to_csv(relay_pitching_lineup_file, index=False)
+                        merge_df.to_csv(relay_text_output_file, index=False)
+
+                    done += 1
+                else:
+                    skipped += 1
+                    if lm is not None:
+                        lm.log('Cannot get response : {}'.format(game_id))
+
+                print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+
+            # download done
+            print_progress('    Downloading: ', len(game_ids[year][month]), done, skipped)
+            print('\n        Downloaded {} files'.format(done))
+            print('        (Skipped {} files)'.format(skipped))
+            end2 = time.time()
+            print('            -- elapsed {:.3f} sec for month {}'.format(end2 - start2, month))
+
+            os.chdir('..')
+            # path: pbp_data/year
+        end1 = time.time()
+        print('   -- elapsed {:.3f} sec for year {}'.format(end1 - start1, year))
+        # months done
+        os.chdir('..')
+        # path: pbp_data/
+    # years done
+    os.chdir('..')
+    # path: root
+    return True
+
+
+def download_pitch_data_only(args, lm=None):
+    # return True or False
+    pdata_url = 'http://m.sports.naver.com/ajax/baseball/gamecenter/kbo/pitches.nhn'
+    pdata_header_row = ['x0', 'y0', 'z0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az', 'plateX', 'plateZ', 'crossPlateX', 'crossPlateY', 'topSz', 'bottomSz', 'stuff', 'speed', 'pitcherName', 'batterName']
+
+    game_ids = get_game_ids(args)
+    if (game_ids is None) or (len(game_ids) == 0):
+        print('no game ids')
+        print('args: {}'.format(args))
+        if lm is not None:
+            lm.log('no game ids')
+            lm.log('args: {}'.format(args))
+        return False
+
+    if lm is not None:
+        lm.resetLogHandler()
+        lm.setLogPath(os.getcwd())
+        lm.setLogFileName('pitch_data_download_log.txt')
         lm.cleanLog()
         lm.createLogHandler()
         lm.log('---- Pitch Data Download Log ----')
@@ -415,7 +839,7 @@ def download_pfx(args, lm=None):
     # path: pbp_data
 
     print("##################################################")
-    print("######          DOWNLOAD PFX DATA          #######")
+    print("######         DOWNLOAD PITCH DATA         #######")
     print("##################################################")
 
     for year in game_ids.keys():
@@ -434,9 +858,9 @@ def download_pfx(args, lm=None):
         os.chdir(str(year))
         # path: pbp_data/year
         
-        year_fp = open(f'{year}_pfx.csv', 'w', newline='\n')
+        year_fp = open(f'{year}_pdata.csv', 'w', newline='\n')
         year_cf = csv.writer(year_fp)
-        year_cf.writerow(pfx_header_row)
+        year_cf.writerow(pdata_header_row)
 
         for month in game_ids[year].keys():
             start2 = time.time()
@@ -454,9 +878,9 @@ def download_pfx(args, lm=None):
             os.chdir(str(month))
             # path: pbp_data/year/month
 
-            month_fp = open(f'{year}_{month}_pfx.csv', 'w', newline='\n')
+            month_fp = open(f'{year}_{month}_pdata.csv', 'w', newline='\n')
             month_cf = csv.writer(month_fp)
-            month_cf.writerow(pfx_header_row)
+            month_cf.writerow(pdata_header_row)
 
             # download
             done = 0
@@ -478,10 +902,10 @@ def download_pfx(args, lm=None):
                     skipped += 1
                     continue
 
-                if not check_url(pfx_url):
+                if not check_url(pdata_url):
                     skipped += 1
                     if lm is not None:
-                        lm.log('URL error : {}'.format(pfx_url))
+                        lm.log('URL error : {}'.format(pdata_url))
                     continue
 
                 if (int(game_id[:4]) == datetime.datetime.now().year) &\
@@ -489,8 +913,8 @@ def download_pfx(args, lm=None):
                    (int(game_id[6:8]) == datetime.datetime.now().day):
                         # do nothing
                        done = done
-                elif (os.path.isfile(game_id + '_pfx.json')) and \
-                        (os.path.getsize(game_id + '_pfx.json') > 0):
+                elif (os.path.isfile(game_id + '_pdata.json')) and \
+                        (os.path.getsize(game_id + '_pdata.json') > 0):
                     done += 1
                     if lm is not None:
                         lm.log('File Duplicate : {}'.format(game_id))
@@ -510,7 +934,7 @@ def download_pfx(args, lm=None):
                                + '&tab=relay'
                 }
 
-                response = requests.get(pfx_url, params=params, headers=headers)
+                response = requests.get(pdata_url, params=params, headers=headers)
 
                 if response is not None:
                     # load json structure
@@ -520,11 +944,11 @@ def download_pfx(args, lm=None):
                         #js = ast.literal_eval(js)
 
                     if js is None:
-                        lm.log('PFX data missing : {}'.format(game_id))
+                        lm.log('Pitch data missing : {}'.format(game_id))
                         skipped += 1
                         continue
                     elif len(js) == 0:
-                        lm.log('PFX data missing : {}'.format(game_id))
+                        lm.log('Pitch data missing : {}'.format(game_id))
                         skipped += 1
                         continue
 
@@ -544,7 +968,7 @@ def download_pfx(args, lm=None):
                     t40 = -df['vy0'] - np.sqrt(df['vy0'] * df['vy0'] - 2 * df['ay'] * (df['y0'] - 40))
                     t40 /= df['ay']
                     x40 = df['x0'] + df['vx0'] * t40 + 0.5 * df['ax'] * t40 * t40
-                    vx41 = df['vx0'] + df['ax'] * t40
+                    vx40 = df['vx0'] + df['ax'] * t40
                     z40 = df['z0'] + df['vz0'] * t40 + 0.5 * df['az'] * t40 * t40
                     vz40 = df['vz0'] + df['az'] * t40
                     th = t - t40
@@ -558,14 +982,14 @@ def download_pfx(args, lm=None):
                     dfjs = json.loads(dfjsstr)
 
                     # dump to json file
-                    fp = open(game_id + '_pfx.json', 'w', newline='\n')
+                    fp = open(game_id + '_pdata.json', 'w', newline='\n')
                     json.dump(dfjs, fp, ensure_ascii=False, sort_keys=False, indent=4)
                     fp.close()
 
                     # dump to csv file
-                    fp = open(game_id + '_pfx.csv', 'w', newline='\n')
+                    fp = open(game_id + '_pdata.csv', 'w', newline='\n')
                     cf = csv.writer(fp)
-                    cf.writerow(pfx_header_row)
+                    cf.writerow(pdata_header_row)
 
                     for x in dfjs:
                         row = [x['x0'],
@@ -639,9 +1063,9 @@ if __name__ == '__main__':
         relaylm.killLogManager()
 
     if options[2] is True:
-        pfxlm = logManager.LogManager()
-        rc = download_pfx(args, pfxlm)
+        pbplm = logManager.LogManager()
+        rc = download_pitch_data_only(args, pbplm)
         if rc is False:
             print('Error')
             exit(1)
-        pfxlm.killLogManager()
+        pbplm.killLogManager()
