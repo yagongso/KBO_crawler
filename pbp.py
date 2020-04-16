@@ -7,6 +7,7 @@ from download import download_pbp_files
 
 def getTracebackStr():
     lines = traceback.format_exc().strip().split('\n')
+    lines.reverse()
     rl = []
     for line in lines:
         rl.append(line)
