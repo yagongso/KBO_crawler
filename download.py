@@ -56,26 +56,26 @@ def get_game_ids(start_date, end_date, playoff=False):
     start_date, end_date : datetime.date
         ID를 가져올 경기 기간의 시작일과 종료일.
         start_date <= Game Date of Games <= end_date
-    
+
     playoff : bool, default False
         True일 경우 플레이오프(포스트시즌) 경기 ID도 받는다.
     """
-    
+
     timetable_url = 'https://sports.news.naver.com/'\
                     'kbaseball/schedule/index.nhn?month='
-    
+
     mon1 = start_date.replace(day=1)
     r = []
     while mon1 <= end_date:
         r.append(mon1)
         mon1 += relativedelta(months=1)
-    
+
     game_ids = []
-    
+
     for d in r:
         month = d.month
         year = d.year
-        
+
         year_regular_start = regular_start[str(year)]
         year_playoff_start = playoff_start[str(year)]
         year_regular_start_date = datetime.date(year,
@@ -118,7 +118,7 @@ def get_game_data(game_id):
     game_id : str
         가져올 게임 ID.
     """
-    
+
     relay_url = 'http://m.sports.naver.com/ajax/baseball/'\
             'gamecenter/kbo/relayText.nhn'
     record_url = 'http://m.sports.naver.com/ajax/baseball/'\
@@ -136,7 +136,7 @@ def get_game_data(game_id):
                    + game_id
                    + '&tab=relay'
     }
-    
+
     #####################################
     # 1. pitch by pitch 데이터 가져오기 #
     #####################################
@@ -146,7 +146,7 @@ def get_game_data(game_id):
     if relay_response.status_code > 200:
         relay_response.close()
         return [None, None, 'response error']
-    
+
     relay_json = relay_response.json()
     js = None
     try:
@@ -155,10 +155,10 @@ def get_game_data(game_id):
     except JSONDecodeError:
         relay_response.close()
         return [None, None, 'got no valid data']
-        
+
     if js.get('gameId') is None:
         return [None, None, 'invalid game ID']
-    
+
     last_inning = js['currentInning']
 
     if last_inning is None:
@@ -174,7 +174,7 @@ def get_game_data(game_id):
     game_data_set['awayTeamLineUp'] = js['awayTeamLineUp']
 
     game_data_set['stadium'] = js['schedule']['stadium']
-    
+
     for inn in range(2, last_inning + 1):
         params = {
             'gameId': game_id,
@@ -259,7 +259,7 @@ def get_game_data(game_id):
     lineup_url = 'https://sports.news.naver.com/gameCenter'\
                  '/gameRecord.nhn?category=kbo&gameId='
     lineup_response = requests.get(lineup_url + game_id)
-    
+
     if lineup_response.status_code > 200:
         lineup_response.close()
         return [None, None, 'response error']
@@ -270,7 +270,7 @@ def get_game_data(game_id):
     scripts = lineup_soup.find_all('script')
     if scripts[10].contents[0].find('잘못된') > 0:
         return [None, None, 'invalid game ID']
-    
+
     team_names = lineup_soup.find_all('span', attrs={'class': 't_name_txt'})
     away_team_name = team_names[0].contents[0].split(' ')[0]
     home_team_name = team_names[1].contents[0].split(' ')[0]
@@ -321,8 +321,8 @@ def get_game_data(game_id):
         pos = player.get('pos')[0]
         pCode = player.get('playerCode')
         away_players.append({'name': name, 'pos': pos, 'pCode': pCode})
-    
-    
+
+
     ##############################
     # 4. 기존 라인업 정보와 취합 #
     ##############################
@@ -390,47 +390,57 @@ def get_game_data(game_id):
 
 
 def download_pbp_files(start_date, end_date, playoff=False,
-                       save_path=None, debug_mode=False):
+                       save_path=None, debug_mode=False,
+                       save_source=False):
     """
     KBO 피치 바이 피치(PBP) 파일을 다운로드.
-    
+
     Parameters
     -----------
     start_date, end_date : datetime.date
         PBP 파일을 받을 경기 기간의 시작일과 종료일.
         start_date <= Game Date of Downloaded Files <= end_date
-    
+
     playoff : bool, default False
         True일 경우 플레이오프(포스트시즌) 경기 파일도 받는다.
-        
+
     save_path : pathlib.Path, default None
         PBP 파일을 저장할 경로.
         값이 없을 경우(None) 현재 경로에 저장.
-    
+
     debug_mode : bool, default False
         True일 경우 sys.stdout을 통해 디버그 메시지와 수행 시간이 출력됨.
+
+    save_source : bool, default False
+        True일 경우 parsing 이전의 소스 데이터를 csv 형식으로 저장.
     """
     start_time = time.time()
     game_ids = get_game_ids(start_date, end_date, playoff)
     end_time = time.time()
     get_game_id_time = end_time - start_time
-    
+
     enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
-    
+
+    now = datetime.datetime.now()
+
     logfile = open('./log.txt', 'a', encoding=enc)
-    
+    logfile.write('\n\n')
+    logfile.write('====================================\n')
+    logfile.write(f"Current Time : {now.isoformat()}\n")
+    logfile.write('====================================\n')
+
     skipped = 0
     broken = 0
     done = 0
     start_time = time.time()
     get_data_time = 0
-    
+
     years = list(set([x[:4] for x in game_ids]))
-    
+
     try:
         for y in years:
             y_path = save_path / y
-            
+
             if not y_path.is_dir():
                 try:
                     y_path.mkdir()
@@ -440,7 +450,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
                     print(f'ERROR : path {y_path} exists, but not a directory')
                     print(f'\tclean path and try again')
                     exit(1)
-        
+
         for gid in tqdm(game_ids):
             now = datetime.datetime.now().date()
             gid_to_date = datetime.date(int(gid[:4]),
@@ -448,18 +458,45 @@ def download_pbp_files(start_date, end_date, playoff=False,
                                         int(gid[6:8]))
             if gid_to_date > now:
                 continue
-                
+
             if (save_path / gid[:4] / f'{gid}.csv').exists():
                 skipped += 1
                 continue
-            
+
             ptime = time.time()
-            game_data_dfs = get_game_data(gid)
+            source_path = save_path / gid[:4] / 'source'
+            if (source_path / f'{gid}_pitching.csv').exists() &\
+                (source_path / f'{gid}_batting.csv').exists() &\
+                (source_path / f'{gid}_relay.csv').exists():
+                game_data_dfs = []
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv')))
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv')))
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv')))
+            else:
+                game_data_dfs = get_game_data(gid)
+
             if game_data_dfs[0] is None:
                 logfile.write(game_data_dfs[-1])
                 if debug_mode is True:
                     print(game_data_dfs[-1])
                 exit(1)
+
+            if save_source is True:
+                if not source_path.is_dir():
+                    try:
+                        source_path.mkdir()
+                    except FileExistsError:
+                        source_path = save_path / gid[:4]
+                        logfile.write(f'NOTE: {gid[:4]}/source exists but not a directory.')
+                        logfile.write(f'source files will be saved in {gid[:4]} instead.')
+
+                if not (source_path / f'{gid}_pitching.csv').exists():
+                    game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'), index=False, encoding=enc)
+                if not (source_path / f'{gid}_batting.csv').exists():
+                    game_data_dfs[1].to_csv(str(source_path / f'{gid}_batting.csv'), index=False, encoding=enc)
+                if not (source_path / f'{gid}_relay.csv').exists():
+                    game_data_dfs[2].to_csv(str(source_path / f'{gid}_relay.csv'), index=False, encoding=enc)
+
             get_data_time += time.time() - ptime
             if game_data_dfs is not None:
                 gs = game_status()
@@ -473,7 +510,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
             else:
                 broken += 1
                 continue
-        
+
         end_time = time.time()
         parse_time = end_time - start_time - get_data_time
         logfile.write('====================================\n')
@@ -495,4 +532,4 @@ def download_pbp_files(start_date, end_date, playoff=False,
         if logfile.closed is not True:
             logfile.close()
         assert False
-    
+

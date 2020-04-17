@@ -27,6 +27,8 @@
   - 아래에 연도 별로 폴더 생성돼서 차곡차곡 저장
 - `-j`, `--join` : 이 옵션을 주면 연도별로 묶은 파일이 생성됨(ex: 2019.csv)
 - `-g` : 이 옵션을 주면 디버그용 메시지 출력
+- `--save-source` : 이 옵션을 주면 파싱에 필요한 소스 데이터가 저장경로 아래 `source` 폴더 안에 저장됨
+  - 이 옵션으로 저장한 파일이 있으면, 인터넷으로 다운받는 대신 저장된 파일로 더 빠르게 PBP 데이터 출력물을 생성(캐시라고 생각하면 됨)
 
 # GUI 사용법
 <img src="https://raw.githubusercontent.com/yagongso/KBO_crawler/master/gui.png">

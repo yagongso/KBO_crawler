@@ -7,8 +7,7 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'speed', 'pitch_result', 'pa_result', 'pa_result_detail',
               'description', 'balls', 'strikes', 'outs',
               'inning', 'inning_topbot', 'score_away', 'score_home',
-              'stands', 'throws', 'on_1b', 'on_2b', 'on_3b',
-              'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
+              'stands', 'throws', 'on_1b', 'on_2b', 'on_3b', 'pos_1', 'pos_2', 'pos_3', 'pos_4', 'pos_5',
               'pos_6', 'pos_7', 'pos_8', 'pos_9',
               'px', 'pz', 'pfx_x', 'pfx_z', 'pfx_x_raw', 'pfx_z_raw',
               'x0', 'z0', 'sz_top', 'sz_bot',
@@ -19,12 +18,12 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
 batter_result = [
     ['삼진', '삼진', '삼진'],
     ['볼넷', '볼넷', '볼넷'],
-    ['자동 고의 4구', '고의 4구', '고의 4구'],
-    ['자동 고의4구', '고의 4구', '고의 4구'],
-    ['고의4구', '고의 4구', '고의 4구'],
-    ['몸에', '몸에 맞는 공', '몸에 맞는 공'],
+    ['자동 고의 4구', '자동 고의4구', '자동 고의4구'],
+    ['자동 고의4구', '자동 고의4구', '자동 고의4구'],
+    ['고의4구', '고의4구', '고의4구'],
+    ['몸에', '몸에 맞는 볼', '몸에 맞는 볼'],
     ['1루타', '안타', '안타'],
-    ['내야안타', '내야 안타', '내야 안타'],
+    ['내야안타', '내야안타', '내야안타'],
     ['번트안타', '번트 안타', '번트 안타'],
     ['안타', '안타', '안타'],
     ['2루타', '2루타', '2루타'],
@@ -37,22 +36,22 @@ batter_result = [
     ['낫아웃 다른주자 수비', '낫아웃 출루', '낫아웃 다른 주자 포스 아웃'],
     ['땅볼로 출루', '포스 아웃', '땅볼 아웃'],
     ['땅볼 아웃', '포스 아웃', '땅볼 아웃'],
-    ['플라이 아웃', '필드 아웃', '플라이 아웃'],
     ['인필드', '필드 아웃', '인필드 플라이'],
     ['파울플라이', '필드 아웃', '파울 플라이 아웃'],
     ['라인드라이브 아웃', '필드 아웃', '라인드라이브 아웃'],
-    ['번트 아웃', '필드 아웃', '번트 아웃'],
     ['병살타', '병살타', '병살타'],
-    ['희생번트 아웃', '희생 번트', '희생 번트'],
-    ['희생플라이 아웃', '희생 플라이', '희생 플라이'],
-    ['희생플라이아웃', '희생 플라이', '희생 플라이'],
+    ['희생번트 아웃', '희생번트', '희생번트'],
+    ['희생플라이 아웃', '희생플라이', '희생플라이'],
+    ['희생플라이아웃', '희생플라이', '희생플라이'],
     ['쓰리번트', '삼진', '쓰리번트 삼진'],
-    ['타구맞음', '필드 아웃', '타구맞음 아웃'],
-    ['희생번트 실책', '실책', '실책'],
-    ['희생번트 야수선택', '야수 선택', '야수 선택'],
+    ['타구맞음', '타구맞음 아웃', '타구맞음 아웃'],
+    ['희생번트 실책', '실책', '희생번트 실책'],
+    ['희생번트 야수선택', '야수 선택', '희생번트 야수선택'],
+    [' 플라이 아웃', '필드 아웃', '플라이 아웃'],
+    [' 번트 아웃', '필드 아웃', '번트 아웃'],
     ['야수선택', '야수 선택', '야수 선택'],
     ['실책', '실책', '실책'],
-    ['타격방해', '타격 방해', '타격 방해'],
+    ['타격방해', '타격방해', '타격방해'],
     ['삼중살', '삼중살', '삼중살'],
     ['부정타격', '필드 아웃', '부정 타격 아웃'],
     ['번트', '번트 안타', '안타'],
@@ -303,10 +302,12 @@ class game_status:
         save_row['inning_topbot'] = '초' if self.top_bot == 0 else '말'
         save_row['score_away'] = self.score[0]
         save_row['score_home'] = self.score[1]
-        if self.stands is not None:
-            save_row['stands'] = self.stands[2]
-        if self.throws is not None:
-            save_row['throws'] = self.throws[0]
+        if (self.stands is not None) and (type(self.stands) == str):
+            if len(self.stands) > 2:
+                save_row['stands'] = self.stands[2]
+        if (self.throws is not None) and (type(self.throws) == str):
+            if len(self.throws) > 2:
+                save_row['throws'] = self.throws[0]
         save_row['pa_number'] = self.pa_number
 
         save_row['game_date'] = self.game_date
@@ -770,7 +771,7 @@ class game_status:
                         cur_type = cur_row[3]
                     self.description = self.description.strip()
 
-                    result = parse_batter_result(cur_text)
+                    result = parse_batter_result(cur_text.strip())
                     self.pa_result = result[0]
                     self.pa_result_detail = result[1]
 

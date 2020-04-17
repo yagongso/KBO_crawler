@@ -4,14 +4,14 @@ import argparse, traceback, sys, pathlib, datetime
 import time
 
 from download import download_pbp_files
+from game_parse import header_row
 
 def getTracebackStr():
     lines = traceback.format_exc().strip().split('\n')
-    rl = [lines[-1]]
-    lines = lines[1:-1]
     lines.reverse()
-    for i in range(0, len(lines), 2):
-        rl.append(f'    {lines[i].strip()} at {lines[i+1].strip()}')
+    rl = []
+    for i in range(len(lines)):
+        rl.append(lines[i].strip())
     return '\n'.join(rl)
 
 
@@ -28,15 +28,16 @@ def join_csvs(path):
             yfile = open(yfilepath, 'w', encoding=enc)
             
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
-            fp = yearfiles[0].open()
-            header = fp.readline()
-            fp.close()
-            
+
+            header = ','.join(header_row) + '\n'
             yfile.write(header)
             
             for file in yearfiles:
                 fp = file.open()
                 lines = fp.readlines()
+                if len(lines) < 2:
+                    fp.close()
+                    continue
                 for line in lines[1:]:
                     yfile.write(line)
                 fp.close()
@@ -87,6 +88,11 @@ parser.add_argument('-j', '--join',
                     action='store_true',
                     dest='join_csv',
                     help='join output files with same year')
+
+parser.add_argument('--save-source',
+                    action='store_true',
+                    dest='save_source',
+                    help='save source data too')
 
 
 if __name__ == '__main__':
@@ -153,7 +159,8 @@ if __name__ == '__main__':
     
     try:
         download_pbp_files(start_date, end_date, playoff=args.playoff,
-                           save_path=sp, debug_mode=args.debug_mode)
+                           save_path=sp, debug_mode=args.debug_mode,
+                           save_source=args.save_source)
     except:
         print('Closed during download')
         log = open('log.txt', 'a')

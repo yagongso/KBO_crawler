@@ -104,7 +104,7 @@ def clean_data(df):
     df = df.drop(df.loc[df.px.isnull()].index)
     df = df.drop(df.loc[df.pz.isnull()].index)
     df = df.drop(df.loc[df.pitch_type.isnull()].index)
-    df = df.drop(df.loc[df.pitch_type == 'None'].index)
+    df = df.drop(df.loc[(df.pitch_type == 'None') & (~df.pitch_type.isnull())].index)
     df = df.drop(df.loc[df.sz_bot.isnull()].index)
     df = df.drop(df.loc[df.sz_top.isnull()].index)
     
@@ -601,9 +601,9 @@ def plot_contour_balls(df, title=None, dpi=144, cmap=None, ax=None):
 
 
 def hex_to_rgb(hex):
-     hex = hex.lstrip('#')
-     hlen = len(hex)
-     return tuple(int(hex[i:i+int(hlen/3)], 16) for i in range(0, hlen, int(hlen/3)))
+    hex = hex.lstrip('#')
+    hlen = len(hex)
+    return tuple(int(hex[i:i+int(hlen/3)], 16) for i in range(0, hlen, int(hlen/3)))
 
 
 def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None):
