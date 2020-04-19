@@ -9,8 +9,9 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import traceback, sys, pathlib, datetime, time
+import pandas as pd
 from download import get_game_ids, get_game_data
-from game_parse import game_status
+from game_parse import game_status, header_row
 
 def getTracebackStr():
     lines = traceback.format_exc().strip().split('\n')
@@ -22,28 +23,33 @@ def getTracebackStr():
 
 now = datetime.datetime.now()
 
-def join_csvs(path):
+def join_csvs(path, start_date, end_date):
     csvs = list(path.glob('*/*csv'))
     if len(csvs) < 1:
         print('no csv file found')
     else:
         years = list(set([str(filename.stem)[:4] for filename in csvs]))
+
+        years_given = list(range(start_date.year, end_date.year+1))
         
         enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
         for y in years:
+            if int(y) not in years_given:
+                continue
             yfilepath = str(path / f'{y}.csv')
             yfile = open(yfilepath, 'w', encoding=enc)
             
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
-            fp = yearfiles[0].open()
-            header = fp.readline()
-            fp.close()
-            
+
+            header = ','.join(header_row) + '\n'
             yfile.write(header)
             
             for file in yearfiles:
                 fp = file.open()
                 lines = fp.readlines()
+                if len(lines) < 2:
+                    fp.close()
+                    continue
                 for line in lines[1:]:
                     yfile.write(line)
                 fp.close()
@@ -115,6 +121,14 @@ class Ui_Dialog(object):
         font.setFamily("Noto Sans Gothic")
         self.checkJoinCSV.setFont(font)
         self.checkJoinCSV.setObjectName("checkJoinCSV")
+        self.checkSaveSource = QtWidgets.QCheckBox(Dialog)
+        self.checkSaveSource.setGeometry(QtCore.QRect(20, 200, 341, 20))
+        font = QtGui.QFont()
+        font.setFamily("Noto Sans Gothic")
+        self.checkSaveSource.setFont(font)
+        self.checkSaveSource.setObjectName("checkSaveSource")
+        self.downloadButton = QtWidgets.QPushButton(Dialog)
+        self.downloadButton.setGeometry(QtCore.QRect(400, 210, 81, 32))
         self.downloadButton = QtWidgets.QPushButton(Dialog)
         self.downloadButton.setGeometry(QtCore.QRect(400, 210, 81, 32))
         font = QtGui.QFont()
@@ -125,7 +139,7 @@ class Ui_Dialog(object):
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         self.savePathButton = QtWidgets.QPushButton(Dialog)
-        self.savePathButton.setGeometry(QtCore.QRect(380, 180, 101, 32))
+        self.savePathButton.setGeometry(QtCore.QRect(380, 160, 101, 32))
         font = QtGui.QFont()
         font.setFamily("Noto Sans Gothic")
         self.savePathButton.setFont(font)
@@ -153,6 +167,7 @@ class Ui_Dialog(object):
         self.checkDebug.setText(_translate("Dialog", "디버그 메시지 출력"))
         self.checkPlayoff.setText(_translate("Dialog", "포스트시즌 포함"))
         self.checkJoinCSV.setText(_translate("Dialog", "연도별 묶음 파일 생성(기존 파일은 삭제)"))
+        self.checkSaveSource.setText(_translate("Dialog", "소스 파일 내용 저장(캐싱 용도)"))
         self.downloadButton.setText(_translate("Dialog", "다운로드!"))
         self.savePathButton.setText(_translate("Dialog", "저장 위치 선택"))
 
@@ -170,6 +185,7 @@ class Ui_Dialog(object):
         save_path = self.dirname
         debug_mode = self.checkDebug.isChecked()
         join_csv = self.checkJoinCSV.isChecked()
+        save_source = self.checkSaveSource.isChecked()
 
         sp = None
         if save_path is None:
@@ -254,7 +270,17 @@ class Ui_Dialog(object):
                             continue
 
                         ptime = time.time()
-                        game_data_dfs = get_game_data(gid)
+                        source_path = sp / gid[:4] / 'source'
+                        if (source_path / f'{gid}_pitching.csv').exists() &\
+                            (source_path / f'{gid}_batting.csv').exists() &\
+                            (source_path / f'{gid}_relay.csv').exists():
+                            game_data_dfs = []
+                            game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv')))
+                            game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv')))
+                            game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv')))
+                        else:
+                            game_data_dfs = get_game_data(gid)
+
                         if game_data_dfs[0] is None:
                             logfile.write(game_data_dfs[-1])
                             if debug_mode is True:
@@ -262,6 +288,23 @@ class Ui_Dialog(object):
                             assert False
                             self.noteLabel.setText(_translate("Dialog",
                                                    "ERROR: 로그 파일(log.txt)을 참조하세요."))
+
+                        if save_source is True:
+                            if not source_path.is_dir():
+                                try:
+                                    source_path.mkdir()
+                                except FileExistsError:
+                                    source_path = save_path / gid[:4]
+                                    logfile.write(f'NOTE: {gid[:4]}/source exists but not a directory.')
+                                    logfile.write(f'source files will be saved in {gid[:4]} instead.')
+
+                            if not (source_path / f'{gid}_pitching.csv').exists():
+                                game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'), index=False, encoding=enc)
+                            if not (source_path / f'{gid}_batting.csv').exists():
+                                game_data_dfs[1].to_csv(str(source_path / f'{gid}_batting.csv'), index=False, encoding=enc)
+                            if not (source_path / f'{gid}_relay.csv').exists():
+                                game_data_dfs[2].to_csv(str(source_path / f'{gid}_relay.csv'), index=False, encoding=enc)
+
                         get_data_time += time.time() - ptime
                         if game_data_dfs is not None:
                             gs = game_status()
@@ -275,7 +318,7 @@ class Ui_Dialog(object):
                         else:
                             self.broken += 1
                     if join_csv is True:
-                        join_csvs(sp)
+                        join_csvs(sp, start_date, end_date)
 
                     end_time = time.time()
                     self.progressBar.setValue(m)

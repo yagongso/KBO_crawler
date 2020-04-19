@@ -15,15 +15,19 @@ def getTracebackStr():
     return '\n'.join(rl)
 
 
-def join_csvs(path):
+def join_csvs(path, start_date, end_date):
     csvs = list(path.glob('*/*csv'))
     if len(csvs) < 1:
         print('no csv file found')
     else:
         years = list(set([str(filename.stem)[:4] for filename in csvs]))
+
+        years_given = list(range(start_date.year, end_date.year+1))
         
         enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
         for y in years:
+            if int(y) not in years_given:
+                continue
             yfilepath = str(path / f'{y}.csv')
             yfile = open(yfilepath, 'w', encoding=enc)
             
@@ -172,7 +176,7 @@ if __name__ == '__main__':
         
     if args.join_csv is True:
         try:
-            join_csvs(sp)
+            join_csvs(sp, start_date, end_date)
         except:
             print('ERROR: -j')
             exit(1)

@@ -31,7 +31,7 @@
   - 이 옵션으로 저장한 파일이 있으면, 인터넷으로 다운받는 대신 저장된 파일로 더 빠르게 PBP 데이터 출력물을 생성(캐시라고 생각하면 됨)
 
 # GUI 사용법
-<img src="https://raw.githubusercontent.com/yagongso/KBO_crawler/master/gui.png">
+<img src="https://raw.githubusercontent.com/yagongso/KBO_crawler/master/_gui.png">
 
 - `python gui.py` 입력하면 창이 뜸
 - 사용법은 다를거 없음
