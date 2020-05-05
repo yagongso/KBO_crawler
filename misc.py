@@ -467,8 +467,8 @@ def get_rv_of_ball_strike_by_count(df):
     
 def calc_framing_cell(df, rv_by_count=False):
     # 20-80% 구간 측정이 mean을 0에 가깝게 맞출 수 있음.
-    features = ['px', 'pz', 'pitch_result', 'stands', 'throws', 'pitcher', 'catcher',
-                'stadium', 'referee', 'balls', 'strikes']
+    features = ['px', 'pz', 'pitch_result', 'stands', 'throws', 'pitcher', 'catcher', 'batter',
+                'stadium', 'referee', 'balls', 'strikes', 'home', 'away', 'inning_topbot', 'game_date', 'pitch_type']
 
     sub_df = df.loc[df.pitch_result.isin(['스트라이크', '볼']) &
                     (df.stands != 'None') & (~df.stands.isnull()) &
@@ -620,8 +620,8 @@ def calc_framing_gam(df, rv_by_count=False):
     predictions = gam.predict(x)
     proba = gam.predict_proba(x)
 
-    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium',
-                                      'home', 'away', 'inning_topbot', 'game_date']]
+    logs = sub_df[features + label + ['pos_1', 'pos_2', 'balls', 'strikes', 'stadium', 'batter',
+                                      'home', 'away', 'inning_topbot', 'game_date', 'pitch_type']]
     logs = logs.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
 
     logs = logs.assign(prediction = predictions)
