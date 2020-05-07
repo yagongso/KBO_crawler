@@ -145,7 +145,7 @@ def get_game_data(game_id):
                                   headers=headers)
     if relay_response.status_code > 200:
         relay_response.close()
-        return [None, None, 'response error']
+        return [None, None, 'response error\n']
 
     relay_json = relay_response.json()
     js = None
@@ -154,15 +154,15 @@ def get_game_data(game_id):
         relay_response.close()
     except JSONDecodeError:
         relay_response.close()
-        return [None, None, 'got no valid data']
+        return [None, None, 'got no valid data\n']
 
     if js.get('gameId') is None:
-        return [None, None, 'invalid game ID']
+        return [None, None, 'invalid game ID\n']
 
     last_inning = js['currentInning']
 
     if last_inning is None:
-        return [None, None, 'invalid game ID']
+        return [None, None, 'no last inning\n']
 
     game_data_set = {}
     game_data_set['relayList'] = []
@@ -184,7 +184,7 @@ def get_game_data(game_id):
         relay_inn_response = requests.get(relay_url, params=params, headers=headers)
         if relay_inn_response.status_code > 200:
             relay_inn_response.close()
-            return [None, None, 'response error']
+            return [None, None, 'response error\n']
 
         relay_json = relay_inn_response.json()
         try:
@@ -192,7 +192,7 @@ def get_game_data(game_id):
             relay_response.close()
         except JSONDecodeError:
             relay_inn_response.close()
-            return [None, None, 'got no valid data']
+            return [None, None, 'got no valid data\n']
 
         for x in js['relayList']:
             game_data_set['relayList'].append(x)
@@ -262,14 +262,14 @@ def get_game_data(game_id):
 
     if lineup_response.status_code > 200:
         lineup_response.close()
-        return [None, None, 'response error']
+        return [None, None, 'response error\n']
 
     lineup_soup = BeautifulSoup(lineup_response.text, 'lxml')
     lineup_response.close()
 
     scripts = lineup_soup.find_all('script')
     if scripts[10].contents[0].find('잘못된') > 0:
-        return [None, None, 'invalid game ID']
+        return [None, None, 'false script page\n']
 
     team_names = lineup_soup.find_all('span', attrs={'class': 't_name_txt'})
     away_team_name = team_names[0].contents[0].split(' ')[0]
@@ -289,7 +289,7 @@ def get_game_data(game_id):
                 try:
                     cont = json.loads(oldjs)
                 except JSONDecodeError:
-                    return [None, None, f'JSONDecodeError - gameID {game_id}']
+                    return [None, None, f'JSONDecodeError - gameID {game_id}\n']
                 break
 
     # 구심 정보 가져와서 취합

@@ -141,7 +141,7 @@ if __name__ == '__main__':
     if args.save_path is not None:
         sp = pathlib.Path(args.save_path)
         if sp.exists() & ~(sp.is_dir()):
-            print('ERROR: -s')
+            print('ERROR: -s; check log.txt')
             print(f"\tsave path('{args.save_path}') exists, but not directory(folder)")
             exit(1)
         elif not sp.exists():
@@ -168,11 +168,12 @@ if __name__ == '__main__':
                            save_path=sp, debug_mode=args.debug_mode,
                            save_source=args.save_source)
     except:
-        print('Closed during download')
+        print('Closed during download; check log.txt')
         log = open('log.txt', 'a')
         log.write('====================================\n')
         log.write(getTracebackStr())
-        print(getTracebackStr())
+        if args.debug_mode is True:
+            print(getTracebackStr())
         log.close()
         exit(1)
         
@@ -180,5 +181,5 @@ if __name__ == '__main__':
         try:
             join_csvs(sp, start_date, end_date)
         except:
-            print('ERROR: -j')
+            print('ERROR: -j; check log.txt')
             exit(1)

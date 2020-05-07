@@ -30,6 +30,7 @@ regular_start = {
     '3333': '0101', # playoff
     '4444': '0101', # playoff
     '5555': '0101', # playoff
+    '6666': '0101', # training
     '7777': '0101', # playoff
     '2008': '0329',
     '2009': '0404',
@@ -43,12 +44,14 @@ regular_start = {
     '2017': '0331',
     '2018': '0324',
     '2019': '0323',
+    '2020': '0505',
 }
 
 playoff_start = {
     '3333': '1231', # playoff
     '4444': '1231', # playoff
     '5555': '1231', # playoff
+    '6666': '1231', # training
     '7777': '1231', # playoff
     '2008': '1008',
     '2009': '0920',
@@ -62,6 +65,7 @@ playoff_start = {
     '2017': '1010',
     '2018': '1015',
     '2019': '1003',
+    '2020': '1130',
 }
 
 teams = ['LG', 'KT', 'NC', 'SK', 'WO', 'SS', 'HH', 'HT', 'LT', 'OB']
@@ -690,9 +694,14 @@ def download_relay2(args, lm=None):
 
                     scripts = lsoup.find_all('script')
                     team_names = lsoup.find_all('span', attrs={'class': 't_name_txt'})
-                    away_team_name = team_names[0].contents[0].split(' ')[0]
-                    home_team_name = team_names[1].contents[0].split(' ')[0]
+                    if len(team_names) > 0:
+                        away_team_name = team_names[0].contents[0].split(' ')[0]
+                        home_team_name = team_names[1].contents[0].split(' ')[0]
+                    else:
+                        away_team_name = None
+                        home_team_name = None
                     contents = None
+                    cont = None
 
                     for tag in scripts:
                         if len(tag.contents) > 0:

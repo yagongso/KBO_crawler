@@ -9,7 +9,7 @@ import logManager
 
 
 def run_pbp_download(args, lm=None):
-    download_relay2(args, lm)
+    download_relay(args, lm)
 
 
 def run_pbp_parser(args, lm=None):
