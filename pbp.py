@@ -33,15 +33,17 @@ def join_csvs(path, start_date, end_date):
             
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
 
-            header = ','.join(header_row) + '\n'
-            yfile.write(header)
+            header_written = False
             
             for file in yearfiles:
-                fp = file.open()
+                fp = file.open(encoding=enc)
                 lines = fp.readlines()
                 if len(lines) < 2:
                     fp.close()
                     continue
+                if header_written is False:
+                    yfile.write(lines[0])
+                    header_written = True
                 for line in lines[1:]:
                     yfile.write(line)
                 fp.close()

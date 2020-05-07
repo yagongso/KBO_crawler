@@ -41,8 +41,7 @@ def join_csvs(path, start_date, end_date):
             
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
 
-            header = ','.join(header_row) + '\n'
-            yfile.write(header)
+            header_written = False
             
             for file in yearfiles:
                 fp = file.open(encoding=enc)
@@ -50,6 +49,9 @@ def join_csvs(path, start_date, end_date):
                 if len(lines) < 2:
                     fp.close()
                     continue
+                if header_written is False:
+                    yfile.write(lines[0])
+                    header_written = True
                 for line in lines[1:]:
                     yfile.write(line)
                 fp.close()
@@ -288,7 +290,7 @@ class Ui_Dialog(object):
                             assert False
                             self.noteLabel.setText(_translate("Dialog",
                                                    "ERROR: 로그 파일(log.txt)을 참조하세요."))
-
+                
                         if save_source is True:
                             if not source_path.is_dir():
                                 try:
