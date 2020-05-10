@@ -9,8 +9,7 @@ _notebooks/
 .ipynb_checkpoints/
 .vscode/
 venv/
-Untitled.ipynb
-pfx_plot.ipynb
+*.ipynb
 *.json
 *.csv
 *.spec

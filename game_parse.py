@@ -481,19 +481,28 @@ class game_status:
                 if before_pos.find('번타자') > 0:
                     order = int(before_pos[0])
                     before_code = self.lineups[self.top_bot][order - 1].get('code')
-                    
-                    if self.top_bot == 0:
-                        for i in range(len(self.away_batter_list)):
-                            if self.away_batter_list[i][1] == before_code:
-                                after_code = self.away_batter_list[i+1][1]
-                                after_hittype = self.away_batter_list[i+1][3]
-                                break
+
+                    # 대타 텍스트가 먼저 나오는 경우, 교체 선반영된 버그
+                    if (before_name != after_name) & (after_name == self.batter_name):
+                        after_code = before_code
+                        after_hittype = self.stands
                     else:
-                        for i in range(len(self.home_batter_list)):
-                            if self.home_batter_list[i][1] == before_code:
-                                after_code = self.home_batter_list[i+1][1]
-                                after_hittype = self.home_batter_list[i+1][3]
-                                break
+                        if self.top_bot == 0:
+                            for i in range(len(self.away_batter_list) - 1):
+                                if self.away_batter_list[i][1] == before_code:
+                                    after_code = self.away_batter_list[i+1][1]
+                                    after_hittype = self.away_batter_list[i+1][3]
+                                    break
+                        else:
+                            for i in range(len(self.home_batter_list) - 1):
+                                if self.home_batter_list[i][1] == before_code:
+                                    after_code = self.home_batter_list[i+1][1]
+                                    after_hittype = self.home_batter_list[i+1][3]
+                                    break
+                    if after_code is None:
+                        if debug_mode is True:
+                            self.log_text.append('cant find player code in batter list')
+                        assert False
                 elif after_pos == '투수':
                     # 예외처리
                     if (after_name == self.pitcher_name) & (before_pos != '투수'):
@@ -501,13 +510,13 @@ class game_status:
                         after_hittype = self.throws
                     elif (after_name != self.pitcher_name) & (before_pos != '투수'):
                         if self.top_bot == 0:
-                            for i in range(len(self.home_pitcher_list)):
+                            for i in range(len(self.home_pitcher_list) - 1):
                                 if self.home_pitcher_list[i][1] == self.pitcher_code:
                                     after_code = self.home_pitcher_list[i+1][1]
                                     after_hittype = self.home_pitcher_list[i+1][2]
                                     break
                         else:
-                            for i in range(len(self.away_pitcher_list)):
+                            for i in range(len(self.away_pitcher_list) - 1):
                                 if self.away_pitcher_list[i][1] == self.pitcher_code:
                                     after_code = self.away_pitcher_list[i+1][1]
                                     after_hittype = self.away_pitcher_list[i+1][2]
@@ -515,17 +524,21 @@ class game_status:
                     else:
                         before_code = self.fields[self.top_bot][before_pos].get('code')
                         if self.top_bot == 0:
-                            for i in range(len(self.home_pitcher_list)):
+                            for i in range(len(self.home_pitcher_list) - 1):
                                 if self.home_pitcher_list[i][1] == before_code:
                                     after_code = self.home_pitcher_list[i+1][1]
                                     after_hittype = self.home_pitcher_list[i+1][2]
                                     break
                         else:
-                            for i in range(len(self.away_pitcher_list)):
+                            for i in range(len(self.away_pitcher_list) - 1):
                                 if self.away_pitcher_list[i][1] == before_code:
                                     after_code = self.away_pitcher_list[i+1][1]
                                     after_hittype = self.away_pitcher_list[i+1][2]
                                     break
+                    if after_code is None:
+                        if debug_mode is True:
+                            self.log_text.append('cant find player code in pitcher list')
+                        assert False
                     if ((self.DH_exist[self.top_bot] is False) or\
                         (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot])):
                         for i in range(9):
@@ -544,17 +557,21 @@ class game_status:
                             order = i + 1
                             break
                     if self.top_bot == 0:
-                        for i in range(len(self.away_batter_list)):
+                        for i in range(len(self.away_batter_list) - 1):
                             if self.away_batter_list[i][1] == before_code:
                                 after_code = self.away_batter_list[i+1][1]
                                 after_hittype = self.away_batter_list[i+1][3]
                                 break
                     else:
-                        for i in range(len(self.home_batter_list)):
+                        for i in range(len(self.home_batter_list) - 1):
                             if self.home_batter_list[i][1] == before_code:
                                 after_code = self.home_batter_list[i+1][1]
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
+                    if after_code is None:
+                        if debug_mode is True:
+                            self.log_text.append('cant find player code in batter list')
+                        assert False
                 else:
                     for i in range(9):
                         if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
@@ -574,25 +591,25 @@ class game_status:
                             self.log_text.append('cant find player name/position in lineup')
                         assert False
                     if self.top_bot == 0:
-                        for i in range(len(self.home_batter_list)):
+                        for i in range(len(self.home_batter_list) - 1):
                             if self.home_batter_list[i][1] == before_code:
                                 after_code = self.home_batter_list[i+1][1]
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
                         if after_code is None:
-                            for i in range(len(self.away_batter_list)):
+                            for i in range(len(self.away_batter_list) - 1):
                                 if self.away_batter_list[i][1] == before_code:
                                     after_code = self.away_batter_list[i+1][1]
                                     after_hittype = self.away_batter_list[i+1][3]
                                     break
                     else:
-                        for i in range(len(self.away_batter_list)):
+                        for i in range(len(self.away_batter_list) - 1):
                             if self.away_batter_list[i][1] == before_code:
                                 after_code = self.away_batter_list[i+1][1]
                                 after_hittype = self.away_batter_list[i+1][3]
                                 break
                         if after_code is None:
-                            for i in range(len(self.home_batter_list)):
+                            for i in range(len(self.home_batter_list) - 1):
                                 if self.home_batter_list[i][1] == before_code:
                                     after_code = self.home_batter_list[i+1][1]
                                     after_hittype = self.home_batter_list[i+1][3]
@@ -868,9 +885,10 @@ class game_status:
                 for i in range(0, len(lines), 2):
                     rl.append(f'\t{lines[i].strip()} at {lines[i+1].strip()}')
                 self.log_text += rl
-                if not self.log_file.closed:
-                    for row in self.log_text:
-                        self.log_file.write(row + '\n')
+                if self.log_file is not None:
+                    if not self.log_file.closed:
+                        for row in self.log_text:
+                            self.log_file.write(row + '\n')
             return False
 
     def save_game(self, path=None):
