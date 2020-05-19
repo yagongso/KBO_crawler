@@ -66,10 +66,10 @@ def parse_batter_result(text):
 
 def parse_batter_as_runner(text):
     runner = text.split(' ')[0]
-    
+
     result = 'o' if text.find('아웃') > 0 else 'a'
     result = 'h' if text.find('홈런') > 0 else result
-    
+
     before_base = 0
     after_base = None
     if any([s in text for s in ['안타', '1루타', '4구', '볼넷', '출루',
@@ -90,14 +90,14 @@ def parse_batter_as_runner(text):
 
 def parse_runner_result(text):
     runner = text.split(' ')[1]
-    
+
     result = 'o' if text.find('아웃') > 0 else 'a' # o : out, a : advance
     result = 'h' if text.find('홈인') > 0 else result # 'h' : home-in
-    
+
     before_base = int(text[0])
     after_base = None if result != 'a' else int(text[text.find('루까지')-1])
     after_base = 4 if result == 'h' else after_base
-    
+
     return [runner, result, before_base, after_base]
 
 
@@ -146,12 +146,12 @@ class game_status:
         self.pitching_df = None
         self.batting_df = None
         self.relay_array = None
-        
+
         self.home_batter_list = None
         self.home_pitcher_list = None
         self.away_batter_list = None
         self.away_pitcher_list = None
-        
+
         # game meta data
         self.game_date = None
         self.away = None
@@ -161,7 +161,7 @@ class game_status:
         self.stadium = None
         self.referee = None
         self.game_id = None
-        
+
         # current game numbers, names, codes, etc.
         self.score = [0, 0]
         self.batter_name = None
@@ -172,43 +172,43 @@ class game_status:
         self.throws = None
         self.DH_exist = [True, True]
         self.DH_exist_after = [True, True]
-        
+
         # lineup(order), fielding position, base
         self.lineups = [[], []] # 초 공격 / 말 공격
         self.fields = [{}, {}] # 초 수비 / 말 수비
         self.runner_bases = []
-        
+
         # status change at pa, inning
         self.pa_number = 0
         self.inn = 0
         self.top_bot = 1 # 0 : 초, 1 : 말
         self.cur_order = 1
-        
+
         # status by pitch, etc.
         self.pitch_number = 0
         self.score = [0, 0] # 초공(어웨이), 말공(홈)
         self.balls, self.outs, self.strikes = 0, 0, 0
         self.last_pitch = None
-        
+
         # pitch result, pa result
         self.pitch_result = None
         self.pa_result = None
         self.pa_result_detail = None
         self.description = ''        
-        
+
         # print rows
         self.print_rows = []
-        
+
         # log text
         self.log_file = None
         self.log_text = []
-        
+
     def load(self, game_id, pdf, bdf, rdf, log_file=None):
         self.pitching_df = pdf
         self.batting_df = bdf
         self.game_id = game_id
         self.log_file = log_file
-        
+
         self.game_date = game_id[:8]
         self.away = game_id[8:10]
         self.home = game_id[10:12]
@@ -216,11 +216,11 @@ class game_status:
         self.referee = rdf.referee.unique()[0]
         self.away_alias = pdf.loc[pdf.homeaway == 'a'].team_name.unique()[0]
         self.home_alias = pdf.loc[pdf.homeaway == 'h'].team_name.unique()[0]
-        
+
         ########################
         # 라인업 & 필드 채우기 #
         ########################
-        
+
         bats = [bdf.loc[bdf.homeaway == 'a'],
                 bdf.loc[bdf.homeaway == 'h']]
         pits = [pdf.loc[pdf.homeaway == 'a'],
@@ -260,7 +260,7 @@ class game_status:
                         'hitType': pits[1].iloc[0].hitType}
         self.fields[1]['투수'] = away_pitcher
         self.fields[0]['투수'] = home_pitcher
-        
+
         home_bdf = bdf.loc[bdf.homeaway == 'h']
         away_bdf = bdf.loc[bdf.homeaway == 'a']
         home_pdf = pdf.loc[pdf.homeaway == 'h']
@@ -268,12 +268,12 @@ class game_status:
 
         batter_list_cols = ['name', 'pCode', 'posName', 'hitType', 'batOrder', 'seqno']
         pitcher_list_cols = ['name', 'pCode', 'hitType', 'seqno']
-        
+
         self.home_batter_list = home_bdf[batter_list_cols].values.tolist()
         self.home_pitcher_list = home_pdf[pitcher_list_cols].values.tolist()
         self.away_batter_list = away_bdf[batter_list_cols].values.tolist()
         self.away_pitcher_list = away_pdf[pitcher_list_cols].values.tolist()
-        
+
         rdf_cols = ['textOrder', 'seqno', 'text', 'type',
                     'stuff', 'pitchId', 'speed', 'referee', 'stadium']
         if 'x0' in rdf.columns:
@@ -338,7 +338,7 @@ class game_status:
             save_row['pitch_result'] = row[2].split(' ')[-1]
             save_row['pitch_number'] = self.pitch_number
             save_row['pitchID'] = row[5]
-            
+
             if len(row) > 13:
                 if not np.isnan(row[17]):
                     save_row['x0'] = row[17]
@@ -368,7 +368,7 @@ class game_status:
             save_row['pa_result_detail'] = pa_result_details[2]
 
         return save_row
- 
+
     def handle_runner_stack(self, runner_stack, debug_mode=False):
         if len(self.runner_bases) == 0:
             if debug_mode is True:
@@ -376,7 +376,7 @@ class game_status:
             assert False
         cur_runner = self.runner_bases[0]
         cur_runner_ind = 0
-        
+
         batter_runner = False
         for row in runner_stack[::-1]:
             if (row[3] == 13) or (row[3] == 23):
@@ -424,7 +424,7 @@ class game_status:
                 after_runner_bases.append([runner[0], runner[1], runner[3][0], [5]])
         self.runner_bases = after_runner_bases[:]
 
- 
+
     def handle_change(self, text_stack, debug_mode=False):
         change_stack = []
         for text in text_stack:
@@ -654,14 +654,14 @@ class game_status:
                 for j in range(len(self.runner_bases)):
                     if self.runner_bases[j][2] == before_base:
                         self.runner_bases[j][0] = after_name
-                        self.runner_bases[j][1] = after_code        
+                        self.runner_bases[j][1] = after_code
                         break
             elif after_pos == '대타':
                 self.runner_bases[-1][0] = after_name
                 self.runner_bases[-1][1] = after_code
                 self.stands = after_hittype
         self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
-   
+
 
     def parse_game(self, debug_mode=False):
         try:
@@ -832,12 +832,12 @@ class game_status:
                         self.inn += 1
                     self.top_bot = (1 - self.top_bot)
                     self.pitcher_name, self.pitcher_code, self.throws = self.fields[self.top_bot].get('투수').values()
-                    
+
                     self.runner_bases = []
                     self.balls, self.outs, self.strikes = 0, 0, 0
                     self.DH_exist_after = self.DH_exist[:]
                     self.last_pitch = None
-                    
+
                     self.pitch_number = 0
                 elif cur_type == 2:
                      # 교체/변경

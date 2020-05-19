@@ -48,7 +48,7 @@ def join_csvs(path, start_date, end_date):
                     yfile.write(line)
                 fp.close()
                 
-            yfile.close()            
+            yfile.close()
 
 
 parser = argparse.ArgumentParser()
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         print('\tcheck -f argument(GAME DATE >=) string format')
         print('\tshould give 8 integer(YYYYMMDD)')
         exit(1)
-        
+
     try:
         if len(args.end_date) != 8:
             assert False
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         print('\tcheck -t argument(GAME DATE <=) string format')
         print('\tshould give 8 integer(YYYYMMDD)')
         exit(1)
-    
+
     try:        
         start_date = datetime.date(int(args.start_date[:4]),
                                    int(args.start_date[4:6]),
@@ -133,9 +133,9 @@ if __name__ == '__main__':
                                  int(args.end_date[4:6]),
                                  int(args.end_date[6:]))
     except ValueError:
-        print('date value error : month or day out of range')        
+        print('date value error : month or day out of range')
         exit(1)
-    
+
     save_path = args.save_path
     sp = None
     if args.save_path is not None:
@@ -162,7 +162,7 @@ if __name__ == '__main__':
                 suffix += 1
                 continue
             break
-    
+
     try:
         download_pbp_files(start_date, end_date, playoff=args.playoff,
                            save_path=sp, debug_mode=args.debug_mode,
@@ -176,7 +176,7 @@ if __name__ == '__main__':
             print(getTracebackStr())
         log.close()
         exit(1)
-        
+
     if args.join_csv is True:
         try:
             join_csvs(sp, start_date, end_date)

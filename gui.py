@@ -42,7 +42,7 @@ def join_csvs(path, start_date, end_date):
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
 
             header_written = False
-            
+
             for file in yearfiles:
                 fp = file.open(encoding=enc)
                 lines = fp.readlines()
@@ -56,7 +56,7 @@ def join_csvs(path, start_date, end_date):
                     yfile.write(line)
                 fp.close()
                 
-            yfile.close()            
+            yfile.close()
 
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
@@ -237,11 +237,11 @@ class Ui_Dialog(object):
                 get_data_time = 0
                 
                 years = list(set([x[:4] for x in game_ids]))
-                
+
                 try:
                     for y in years:
                         y_path = sp / y
-                        
+
                         if not y_path.is_dir():
                             try:
                                 y_path.mkdir()
@@ -251,7 +251,7 @@ class Ui_Dialog(object):
                                 self.noteLabel.setText(_translate("Dialog",
                                     f"알림: 저장경로 {str(y_path)}가 존재하지만 디렉토리가 아닙니다. 확인 후 재실행하세요."))
                                 assert False
-                    
+
                     m = self.progressBar.maximum()
                     t = self.total_games
 
@@ -266,7 +266,7 @@ class Ui_Dialog(object):
                                                     int(gid[6:8]))
                         if gid_to_date > now.date():
                             continue
-                            
+
                         if (sp / gid[:4] / f'{gid}.csv').exists():
                             self.skipped += 1
                             continue
@@ -290,7 +290,7 @@ class Ui_Dialog(object):
                             assert False
                             self.noteLabel.setText(_translate("Dialog",
                                                    "ERROR: 로그 파일(log.txt)을 참조하세요."))
-                
+
                         if save_source is True:
                             if not source_path.is_dir():
                                 try:

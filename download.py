@@ -95,7 +95,7 @@ def get_game_ids(start_date, end_date, playoff=False):
                                attrs={'class': 'td_btn'})
 
         for btn in buttons:
-            gid = btn.a['href'].split('gameId=')[1]            
+            gid = btn.a['href'].split('gameId=')[1]
             gid_date = datetime.date(int(gid[:4]),
                                      int(gid[4:6]),
                                      int(gid[6:8]))
