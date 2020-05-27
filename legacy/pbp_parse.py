@@ -89,6 +89,9 @@ class BallGame:
         'pa_number': 0,
         'pitch_number': 0,
 
+        # current bat order
+        'bat_order': 0,
+
         # base
         'on_1b': None,
         'on_2b': None,
@@ -1457,6 +1460,10 @@ def parse_pa_result(text, ball_game):
     elif result.find('번트') >= 0:
         # '이용규 : 좌익수 앞 번트' 하나 있는 예외(20160709SSHH0)
         ball_game.other_hit()
+    elif text.find('실책') >= 0:
+        # 20200507NCSS0 : 좌익수 희생플라이 (좌익수 실책)
+        # 패턴에 걸리지 않음
+        ball_game.roe()
     else:
         rc = 'unexpected PA result - text : {}\n'.format(text)
         rc += '{}회 {}:{} 타석'.format(
@@ -1854,7 +1861,10 @@ def parse_change(text, ball_game):
             
     if change:
         if (dst_pos == '대타') or (dst_pos == '대주자'):
-            lineup_no = int(src_pos[0]) - 1
+            if (src_pos == '대타'):
+                lineup_no =  ball_game.game_status['cur_order'] - 1
+            else:
+                lineup_no = int(src_pos[0]) - 1
             if ball_game.game_status['inning_top_bot'] == 0:
                 # away
                 if (ball_game.game_status['away_lineup'][lineup_no]['pos'] == src_pos) and \
@@ -1960,6 +1970,7 @@ def parse_batter(text, home_batters, away_batters, bid, ball_game):
         rc = ball_game.go_to_next_pa()
         if type(rc) is str:
             return rc
+        ball_game.game_status['cur_order'] = int(bat_order)
 
     # 초/말에 따라 타자 검색, 치는손 기록
     ball_game.game_status['batter'] = result

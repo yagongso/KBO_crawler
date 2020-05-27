@@ -477,7 +477,7 @@ def calc_framing_cell(df, rv_by_count=False):
     sub_df = sub_df.assign(stands = np.where(sub_df.stands == '양',
                                      np.where(sub_df.throws == '좌', '우', '좌'),
                                      sub_df.stands))
-    sub_df = sub_df.rename(index=str, columns={'pos_1': 'pitcher', 'pos_2':'catcher'})
+    sub_df = sub_df.rename(index=str, columns={'pos_2':'catcher'})
     logs = sub_df[features]
 
     logs = logs.assign(pitch_result=np.where(logs.pitch_result=='스트라이크', 1, 0))
@@ -784,7 +784,6 @@ def adjust_framing(df, rv=None):
 def get_framing_run(df):
     _1, _2 = get_rv_of_ball_strike(df)
     rv = _1 - _2
-    clean_df = clean_data(df)
     
     logs, _ = calc_framing_gam_adv(df)
     
