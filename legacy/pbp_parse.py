@@ -1415,6 +1415,14 @@ def parse_pa_result(text, ball_game):
             ball_game.roe()
         else:
             ball_game.force_out()
+    elif result.find('낫아웃 출루') >= 0:
+        # BUGBUG : 없던 패턴 '낫아웃 출루'
+        #
+        # CASE : 20200605HTOB0 8회초 기아 공격 8번 한승택 타석
+        #
+        # 타자는 출루, 주자가 포스아웃으로 아웃
+        # 포스아웃 처리
+        ball_game.force_out()
     elif result.find('낫아웃') >= 0:
         ball_game.not_out()
     elif result.find('땅볼로 출루') >= 0:

@@ -174,7 +174,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
                 if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
                     ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
                             color='white', fontsize='medium', weight='bold', horizontalalignment='center')
-    
+
     ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
     ax.plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
     ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
@@ -195,7 +195,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     if title is not None:
         ax.set_title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
     
-    plt.axis('off')
+    ax.axis('off')
     ax.autoscale_view('tight')
     
     if legends is True:
@@ -268,9 +268,9 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     ax.axis( [lb, rb, bb, tb] )
 
     if title is not None:
-        plt.title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+        ax.set_title(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
     
-    plt.axis('off')
+    ax.axis('off')
     ax.autoscale_view('tight')
     
     if legends is True:
@@ -875,9 +875,9 @@ def pitcher_info(df, pitcher=None):
         
     groupped = sub_df.groupby('pitch_type').mean().loc[:, ['speed', 'pfx_x', 'pfx_z']]
     
-    groupped['count'] = sub_df.groupby('pitch_type').count().speed
-    groupped['max'] = sub_df.groupby('pitch_type').max().speed
-    groupped['min'] = sub_df.groupby('pitch_type').min().speed
+    groupped['count'] = sub_df.groupby('pitch_type').speed.count()
+    groupped['max'] = sub_df.groupby('pitch_type').speed.max()
+    groupped['min'] = sub_df.groupby('pitch_type').speed.min()
     
     groupped['pct'] = groupped['count'] / groupped['count'].sum() * 100
     
