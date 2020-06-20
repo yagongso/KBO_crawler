@@ -38,6 +38,15 @@ BallColors = {'직구':'#ff0000',
               '커터':'#00cc99',
               '너클볼':'#ffffff'}
 
+BallColors2 = {'직구': '#f03e3e',
+               '투심': '#e26d14',
+               '싱커': '#f2bb07',
+               '슬라이더': '#acfc16',
+               '커터': '#187c29',
+               '커브': '#22e8a6',
+               '체인지업': '#0cd8fc',
+               '포크': '#0b62ed',
+               '너클볼': '#aa6fa2'}
 
 def fmt(x, pos):
     return r'{}%'.format(int(x*100))
@@ -167,7 +176,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
         
     for c in calls_:
         f = df.loc[df.pitch_result == c]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, cmap='set1', zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)#cmap='set1', zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
@@ -242,7 +251,8 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         
     for p in pitch_types_:
         f = df.loc[df.pitch_type == p]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, cmap='set1', zorder=0)
+        c = BallColors2[p]
+        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)#cmap='set1', zorder=0)
 
         if show_pitch_number is True:
             for i in f.index:
@@ -521,7 +531,7 @@ def plot_match_calls(df, title=None):
     plt.show()
 
 
-def plot_contour_balls(df, title=None, dpi=144, cmap=None, ax=None):
+def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
