@@ -426,6 +426,44 @@ class game_status:
         self.runner_bases = after_runner_bases[:]
 
 
+    def handle_change_stack(self, change_stack):
+        for i in range(len(change_stack)):
+            change = change_stack[i]
+            before_pos, after_pos, order, after_name, after_code, after_hittype = change
+            if (after_pos != '대타') & (after_pos != '대주자'):
+                self.fields[self.top_bot][after_pos]['code'] = after_code
+                self.fields[self.top_bot][after_pos]['name'] = after_name
+                self.fields[self.top_bot][after_pos]['hitType'] = after_hittype
+
+            if order is not None:
+                if (after_pos != '대타') & (after_pos != '대주자'):
+                    tb = 1 - self.top_bot
+                else:
+                    tb = self.top_bot
+
+                self.lineups[tb][order - 1]['code'] = after_code
+                self.lineups[tb][order - 1]['name'] = after_name
+                self.lineups[tb][order - 1]['pos'] = after_pos
+                self.lineups[tb][order - 1]['hitType'] = after_hittype
+
+            if after_pos == '투수':
+                self.pitcher_code = after_code
+                self.pitcher_name = after_name
+                self.throws = after_hittype
+            elif after_pos == '대주자':
+                before_base = int(before_pos[0])
+                for j in range(len(self.runner_bases)):
+                    if self.runner_bases[j][2] == before_base:
+                        self.runner_bases[j][0] = after_name
+                        self.runner_bases[j][1] = after_code
+                        break
+            elif after_pos == '대타':
+                self.runner_bases[-1][0] = after_name
+                self.runner_bases[-1][1] = after_code
+                self.stands = after_hittype
+        self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
+
+
     def handle_change(self, text_stack, debug_mode=False):
         change_stack = []
         for text in text_stack:
@@ -588,9 +626,31 @@ class game_status:
                                 order = i + 1
                                 break
                     if order is None:
-                        if debug_mode is True:
-                            self.log_text.append('cant find player name/position in lineup')
-                        assert False
+                        try:
+                            self.handle_change_stack(change_stack)
+                            change_stack = []
+
+                            for i in range(9):
+                                if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
+                                (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
+                                    before_code = self.lineups[1 - self.top_bot][i].get('code')
+                                    order = i + 1
+                                    break
+                            if order is None:
+                                for i in range(9):
+                                    if (self.lineups[self.top_bot][i].get('name') == before_name) &\
+                                    (self.lineups[self.top_bot][i].get('pos') == before_pos):
+                                        before_code = self.lineups[self.top_bot][i].get('code')
+                                        order = i + 1
+                                        break
+                            else:
+                                if debug_mode is True:
+                                    self.log_text.append('cant find player name/position in lineup')
+                                assert False
+                        except:
+                            if debug_mode is True:
+                                self.log_text.append('cant find player name/position in lineup')
+                            assert False
                     if self.top_bot == 0:
                         for i in range(len(self.home_batter_list) - 1):
                             if self.home_batter_list[i][1] == before_code:
@@ -627,41 +687,7 @@ class game_status:
                 change = [before_pos, after_pos, order, after_name, after_code, after_hittype]
                 change_stack.append(change)
 
-        for i in range(len(change_stack)):
-            change = change_stack[i]
-            before_pos, after_pos, order, after_name, after_code, after_hittype = change
-            if (after_pos != '대타') & (after_pos != '대주자'):
-                self.fields[self.top_bot][after_pos]['code'] = after_code
-                self.fields[self.top_bot][after_pos]['name'] = after_name
-                self.fields[self.top_bot][after_pos]['hitType'] = after_hittype
-
-            if order is not None:
-                if (after_pos != '대타') & (after_pos != '대주자'):
-                    tb = 1 - self.top_bot
-                else:
-                    tb = self.top_bot
-
-                self.lineups[tb][order - 1]['code'] = after_code
-                self.lineups[tb][order - 1]['name'] = after_name
-                self.lineups[tb][order - 1]['pos'] = after_pos
-                self.lineups[tb][order - 1]['hitType'] = after_hittype
-
-            if after_pos == '투수':
-                self.pitcher_code = after_code
-                self.pitcher_name = after_name
-                self.throws = after_hittype
-            elif after_pos == '대주자':
-                before_base = int(before_pos[0])
-                for j in range(len(self.runner_bases)):
-                    if self.runner_bases[j][2] == before_base:
-                        self.runner_bases[j][0] = after_name
-                        self.runner_bases[j][1] = after_code
-                        break
-            elif after_pos == '대타':
-                self.runner_bases[-1][0] = after_name
-                self.runner_bases[-1][1] = after_code
-                self.stands = after_hittype
-        self.DH_exist[self.top_bot] = self.DH_exist_after[self.top_bot]
+        self.handle_change_stack(change_stack)
 
 
     def parse_game(self, debug_mode=False):
@@ -698,7 +724,7 @@ class game_status:
                         self.strikes += 1
                     elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
-                    if (self.strikes > 3) or (self.strikes > 4) or (self.strikes > 3):
+                    if (self.strikes > 3) or (self.strikes > 4) or (self.outs > 3):
                         if debug_mode is True:
                             self.log_text.append('3S/4B/3O')
                         assert False
@@ -829,6 +855,10 @@ class game_status:
                 elif cur_type == 0:
                     # 이닝 시작
                     ind = ind + 1
+                    if (len(self.print_rows) > 0) & (self.outs < 3):
+                        if debug_mode is True:
+                            self.log_text.append('outs < 3')
+                        assert False
                     if self.top_bot == 1:
                         self.inn += 1
                     self.top_bot = (1 - self.top_bot)
@@ -893,14 +923,23 @@ class game_status:
             return False
 
     def save_game(self, path=None):
-        row_df = pd.DataFrame(self.print_rows)
-        enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
+        if len(self.print_rows) > 0:
+            row_df = pd.DataFrame(self.print_rows)
+            row_df['speed'] = row_df.speed.convert_dtypes()
+            row_df['pitch_number'] = row_df.pitch_number.convert_dtypes()
+            row_df['pa_number'] = row_df.pa_number.convert_dtypes()
 
-        if path is None:
-            path = pathlib.Path('.')
-        save_path = str(path / f'{self.game_id}.csv')
+            row_df.loc[:, 'px':'az'] = row_df.round({'px': 3, 'pz': 3, 'pfx_x': 3, 'pfx_z': 3,
+                                                    'pfx_x_raw': 3, 'pfx_z_raw': 3, 'x0': 3, 'z0': 3,
+                                                    'sz_top': 3, 'sz_bot': 3, 'y0': 3,
+                                                    'vx0': 3, 'vy0': 3, 'vz0': 3,
+                                                    'ax': 3, 'ay': 3, 'az': 3}).loc[:, 'px':'az']
+            enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
 
-        row_df.to_csv(save_path,
-                      encoding=enc,
-                      index=False)
+            if path is None:
+                path = pathlib.Path('.')
+            save_path = str(path / f'{self.game_id}.csv')
 
+            row_df.to_csv(save_path,
+                        encoding=enc,
+                        index=False)
