@@ -925,15 +925,18 @@ class game_status:
     def save_game(self, path=None):
         if len(self.print_rows) > 0:
             row_df = pd.DataFrame(self.print_rows)
-            row_df['speed'] = row_df.speed.convert_dtypes()
-            row_df['pitch_number'] = row_df.pitch_number.convert_dtypes()
-            row_df['pa_number'] = row_df.pa_number.convert_dtypes()
+            try:
+                row_df['speed'] = row_df.speed.convert_dtypes()
+                row_df['pitch_number'] = row_df.pitch_number.convert_dtypes()
+                row_df['pa_number'] = row_df.pa_number.convert_dtypes()
+            except:
+                pass
 
             row_df.loc[:, 'px':'az'] = row_df.round({'px': 3, 'pz': 3, 'pfx_x': 3, 'pfx_z': 3,
-                                                    'pfx_x_raw': 3, 'pfx_z_raw': 3, 'x0': 3, 'z0': 3,
-                                                    'sz_top': 3, 'sz_bot': 3, 'y0': 3,
-                                                    'vx0': 3, 'vy0': 3, 'vz0': 3,
-                                                    'ax': 3, 'ay': 3, 'az': 3}).loc[:, 'px':'az']
+                                                     'pfx_x_raw': 3, 'pfx_z_raw': 3, 'x0': 3, 'z0': 3,
+                                                     'sz_top': 3, 'sz_bot': 3, 'y0': 3,
+                                                     'vx0': 3, 'vy0': 3, 'vz0': 3,
+                                                     'ax': 3, 'ay': 3, 'az': 3}).loc[:, 'px':'az']
             enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
 
             if path is None:
