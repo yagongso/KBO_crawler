@@ -43,7 +43,7 @@ BallColors2 = {'직구': '#f03e3e',
                '싱커': '#f2bb07',
                '슬라이더': '#acfc16',
                '커터': '#187c29',
-               '커브': '#22e8a6',
+               '커브': '#ff99cc',
                '체인지업': '#0cd8fc',
                '포크': '#0b62ed',
                '너클볼': '#aa6fa2'}
@@ -140,7 +140,7 @@ def plot_strike_calls(df, title=None, show_pitch_number=False):
 
 def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
-    if df.px.dtypes == np.object:
+    if df.px.isnull().any():
         df = clean_data(df)
 
     # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트    
@@ -215,7 +215,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
 
 def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
-    if df.px.dtypes == np.object:
+    if df.px.isnull().any():
         df = clean_data(df)
 
     # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트    
