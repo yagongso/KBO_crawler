@@ -40,11 +40,12 @@ def join_csvs(path, start_date, end_date):
             yfile = open(yfilepath, 'w', encoding=enc)
             
             yearfiles = [x for x in csvs if (x.stem.find(str(y)) > -1) & (len(x.stem) > 4)]
+            yearfiles.sort(reverse=False)
 
             header_written = False
 
-            for file in yearfiles:
-                fp = file.open(encoding=enc)
+            for f in yearfiles:
+                fp = f.open(encoding=enc)
                 lines = fp.readlines()
                 if len(lines) < 2:
                     fp.close()
