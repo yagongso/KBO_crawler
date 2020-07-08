@@ -6,7 +6,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy.random
 import matplotlib.ticker as ticker
-import matplotlib.dates as mdates
 import matplotlib.cm as cm
 from matplotlib.patches import Ellipse
 from matplotlib import font_manager as fm, rc
@@ -16,8 +15,6 @@ import pandas as pd
 import seaborn as sns
 from enum import Enum
 from scipy.ndimage.filters import gaussian_filter
-import ipywidgets as widgets
-from IPython.display import clear_output
 from scipy import stats
 from matplotlib.colors import LinearSegmentedColormap
 import colorsys

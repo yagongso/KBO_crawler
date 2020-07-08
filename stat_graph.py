@@ -4,6 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
+import ipywidgets as widgets
+from IPython.display import clear_output
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 
 def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True, True]):
     datesFmt = mdates.DateFormatter('%m-%d')
@@ -11,7 +15,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
     if df.game_date.dtype == np.int64:
         df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
-    df = df.assign(pa=np.where(df.pa_result != 'None', 1, 0))
+    df = df.assign(pa=np.where(df.pa_result.notnull(), 1, 0))
     df = df.assign(ab=np.where(df.pa_result.isin(['1루타', '내야안타', '안타', '2루타', '3루타', '홈런', '희생번트 야수선택',
                                                   '삼진', '실책', '필드 아웃', '포스 아웃', '병살타', '타구맞음 아웃',
                                                   '낫아웃 폭투', '희생번트 실책', '야수선택', '낫아웃 포일', '삼중살']),
@@ -423,7 +427,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
     if df.game_date.dtype == np.int64:
         df = df.assign(game_date = pd.to_datetime(df.game_date, format='%Y%m%d').dt.date)
     
-    df = df.assign(pa=np.where(df.pa_result != 'None', 1, 0))
+    df = df.assign(pa=np.where(df.pa_result.notnull(), 1, 0))
     df = df.assign(ab=np.where(df.pa_result.isin(['1루타', '내야안타', '안타', '2루타', '3루타', '홈런', '희생번트 야수선택',
                                                   '삼진', '실책', '필드 아웃', '포스 아웃', '병살타', '타구맞음 아웃',
                                                   '낫아웃 폭투', '희생번트 실책', '야수선택', '낫아웃 포일', '삼중살']),
@@ -869,7 +873,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
 
 
 def interactive_batting_graph(df):
-    batters = df.batter.drop_duplicates().values().tolist()
+    batters = df.batter.drop_duplicates().values.tolist()
     batters.sort()
     batter = batters[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -927,7 +931,7 @@ def interactive_batting_graph(df):
 
     
 def interactive_batter_discipline_graph(df):
-    batters = df.batter.drop_duplicates().values().tolist()
+    batters = df.batter.drop_duplicates().values.tolist()
     batters.sort()
     batter = batters[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -988,7 +992,7 @@ def interactive_batter_discipline_graph(df):
 
 
 def interactive_pitching_graph(df):
-    pitchers = df.pitcher.drop_duplicates().values().tolist()
+    pitchers = df.pitcher.drop_duplicates().values.tolist()
     pitchers.sort()
     pitcher = pitchers[0]
     term= df.game_date.drop_duplicates().shape[0]
@@ -1048,7 +1052,7 @@ def interactive_pitching_graph(df):
 
 
 def interactive_pitcher_discipline_graph(df):
-    pitchers = df.pitcher.drop_duplicates().values().tolist()
+    pitchers = df.pitcher.drop_duplicates().values.tolist()
     pitchers.sort()
     pitcher = pitchers[0]
     term= df.game_date.drop_duplicates().shape[0]
