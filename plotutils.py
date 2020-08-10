@@ -201,6 +201,96 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     return fig, ax
 
 
+def plot_by_call_by_stands(df,
+    title=None,
+    calls=None,
+    legends=True,
+    show_pitch_number=False,
+    dpi=80,
+    ax=None):
+    set_fonts()
+    if df.px.isnull().any():
+        df = clean_data(df)
+
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
+    lb = -1.5 # leftBorder
+    rb = +1.5  # rightBorder
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
+
+    ldf = df.loc[df.stands == '좌']
+    rdf = df.loc[df.stands == '우']
+    dfs = [ldf, rdf]
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 2, figsize=(10,5), dpi=dpi, facecolor='#898f99')
+    else:
+        fig = None
+
+    if calls is None:
+        calls_ = df.pitch_result.drop_duplicates()
+    elif type(calls) is list:
+        calls_ = calls
+    elif type(calls) is str:
+        calls_ = calls
+    else:
+        print()
+        print( 'ERROR: call option must be either string or list' )
+        exit(1)
+
+    for c in calls_:
+        for j in range(2):
+            df = dfs[j]
+            f = df.loc[df.pitch_result == c]
+            ax[j].scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)
+
+            if show_pitch_number is True:
+                for i in f.index:
+                    if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                        ax[j].text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                   color='white', fontsize='medium', weight='bold', horizontalalignment='center')
+
+            ax[j].plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+            ax[j].plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+
+            ax[j].plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
+            ax[j].plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
+
+            ax[j].plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
+
+            ax[j].plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
+            ax[j].axis( [lb, rb, bb, tb] )
+
+            ax[j].axis('off')
+            ax[j].autoscale_view('tight')
+
+    if title is not None:
+        fig.suptitle(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+
+    ax[0].set_title('vs L', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+    ax[1].set_title('vs R', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+
+    if legends is True:
+        ax[0].legend(loc='lower center', ncol=2, fontsize='medium')
+        ax[1].legend(loc='lower center', ncol=2, fontsize='medium')
+
+    return fig, ax
+
 def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
     if df.px.isnull().any():
@@ -273,6 +363,98 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
 
     if legends is True:
         ax.legend(loc='lower center', ncol=2, fontsize='medium')
+
+    return fig, ax
+
+
+def plot_by_pitch_type_by_stands(df,
+    title=None,
+    pitch_types=None,
+    legends=True,
+    show_pitch_number=False,
+    dpi=80,
+    ax=None):
+    set_fonts()
+    if df.px.isnull().any():
+        df = clean_data(df)
+
+    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
+    lb = -1.5 # leftBorder
+    rb = +1.5  # rightBorder
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
+
+    ldf = df.loc[df.stands == '좌']
+    rdf = df.loc[df.stands == '우']
+    dfs = [ldf, rdf]
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 2, figsize=(10,5), dpi=dpi, facecolor='#898f99')
+    else:
+        fig = None
+
+    if pitch_types is None:
+        pitch_types_ = df.pitch_type.drop_duplicates()
+    elif type(pitch_types) is list:
+        pitch_types_ = pitch_types
+    elif type(pitch_types) is str:
+        pitch_types_ = pitch_types
+    else:
+        print()
+        print( 'ERROR: call option must be either string or list' )
+        exit(1)
+
+    for p in pitch_types_:
+        for j in range(2):
+            df = dfs[j]
+            f = df.loc[df.pitch_type == p]
+            c = BallColors[p]
+            ax[j].scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)
+
+            if show_pitch_number is True:
+                for i in f.index:
+                    if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
+                        ax[j].text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                                   color='white', fontsize='medium', weight='bold', horizontalalignment='center')
+
+            ax[j].plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+            ax[j].plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
+
+            ax[j].plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
+            ax[j].plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
+
+            ax[j].plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
+
+            ax[j].plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
+            ax[j].plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
+            ax[j].axis( [lb, rb, bb, tb] )
+
+            ax[j].axis('off')
+            ax[j].autoscale_view('tight')
+
+    if title is not None:
+        fig.suptitle(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+
+    ax[0].set_title('vs L', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+    ax[1].set_title('vs R', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
+
+    if legends is True:
+        ax[0].legend(loc='lower center', ncol=2, fontsize='medium')
+        ax[1].legend(loc='lower center', ncol=2, fontsize='medium')
 
     return fig, ax
 
@@ -521,7 +703,7 @@ def plot_match_calls(df, title=None):
 
 def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None):
     set_fonts()
-    if df.px.dtypes == np.object:
+    if df.px.isnull().any():
         df = clean_data(df)
 
     lb = -1.5
