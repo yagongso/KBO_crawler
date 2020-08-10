@@ -1,6 +1,12 @@
 ﻿# 개요
 [Naver](https://www.naver.com)의 문자 중계 시스템에서 Play-by-play(PBP) 데이터를 가져와 정리하여 csv 파일로 출력한다.
 
+# 나오는 것
+<img src="https://raw.githubusercontent.com/yagongso/KBO_crawler/master/_table.png">
+
+이렇게 생긴 데이터 파일
+
+
 # 필요한 것들
 - [Python 3.5 이상](https://www.python.org/downloads/).
   - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천
