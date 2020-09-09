@@ -13,7 +13,7 @@ header_row = ['pitch_type', 'pitcher', 'batter', 'pitcher_ID', 'batter_ID',
               'x0', 'z0', 'sz_top', 'sz_bot',
               'y0', 'vx0', 'vy0', 'vz0', 'ax', 'ay', 'az',
               'game_date', 'home', 'away', 'home_alias', 'away_alias',
-              'stadium', 'referee', 'pa_number', 'pitch_number', 'pitchID']
+              'stadium', 'referee', 'pa_number', 'pitch_number', 'pitchID', 'gameID']
 
 batter_result = [
     ['삼진', '삼진', '삼진'],
@@ -907,7 +907,7 @@ class game_status:
                     break
             if debug_mode is True:
                 self.log_text.append("-"*60)
-                self.log_text.append(f"=== gameid : {self.game_id}")
+                self.log_text.append(f"=== gameID : {self.game_id}")
                 self.log_text.append("-"*60)
                 lines = traceback.format_exc().strip().split('\n')
                 rl = [lines[-1]]
