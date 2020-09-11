@@ -12,6 +12,7 @@
   - [Anaconda](https://www.anaconda.com/download/)를 사용한 설치를 추천
   - 필요 모듈 : `lxml`, `BeautifulSoup`, `regex`, `numpy`, `matplotlib`, `pandas`, `IPython`
   - 모듈 설치는 `pip`를 사용 (설명은 인터넷 검색 참조)
+  - __반드시 파이썬 실행 파일이 있는 경로를 PATH 환경 변수에 추가해야 한다.__ 모르겠으면 '파이썬 PATH 설정' 등으로 구글링
 - 터미널
   - 윈도우에선 Git Bash나 MINGW 추천
 - Git
