@@ -65,13 +65,14 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
             hbp_sum += tab.loc[i].hbp
             
             # avg, obp, slg, ops, babip
-            
-            result_sum.append([hit_sum/ab_sum, # avg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # obp
-                               tb_sum/ab_sum, # slg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, #ops
-                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
-                              ])
+            _avg = hit_sum/ab_sum if ab_sum > 0 else 0
+            _obp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
+            _slg = tb_sum/ab_sum if ab_sum > 0 else 0
+            _ops = _obp + _slg
+            _babip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
+
+            result_sum.append([_avg, _obp, _slg,
+                               _ops, _babip])
             
         fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=10)
     else:
@@ -90,13 +91,14 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
             hbp_sum = tab.loc[tab.index[i]:tab.index[i+term]].hbp.sum()
             
             # avg, obp, slg, ops, babip
-            
-            result_sum.append([hit_sum/ab_sum, # avg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # obp
-                               tb_sum/ab_sum, # slg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, #ops
-                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) # babip
-                              ])
+            _avg = hit_sum/ab_sum if ab_sum > 0 else 0
+            _obp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
+            _slg = tb_sum/ab_sum if ab_sum > 0 else 0
+            _ops = _obp + _slg
+            _babip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
+
+            result_sum.append([_avg, _obp, _slg,
+                               _ops, _babip])
             
         fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average')
 
@@ -264,13 +266,16 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
             oz_miss_sum += tab.loc[i].oz_miss
             
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            _swing = swing_sum/raw_num_sum*100 if raw_num_sum > 0 else 0
+            _con = (1-miss_sum/swing_sum)*100 if swing_sum > 0 else 0
+            _izswing = iz_swing_sum/iz_raw_num_sum*100 if iz_raw_num_sum > 0 else 0
+            _izcon = (1-iz_miss_sum/iz_swing_sum)*100 if iz_swing_sum > 0 else 0
+            _ozswing = oz_swing_sum/oz_raw_num_sum*100 if oz_raw_num_sum > 0 else 0
+            _ozcon = (1-oz_miss_sum/oz_swing_sum)*100 if oz_swing_sum > 0 else 0
             
-            result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/swing_sum)*100,
-                               iz_swing_sum/iz_raw_num_sum*100,
-                               (1-iz_miss_sum/iz_swing_sum)*100,
-                               oz_swing_sum/oz_raw_num_sum*100,
-                               (1-oz_miss_sum/oz_swing_sum)*100])
+            result_sum.append([_swing, _con,
+                               _izswing, _izcon,
+                               _ozswing, _ozcon])
             
         fig.suptitle(f'{batter}\'s Cumulative Average', fontsize=10)
     else:
@@ -288,13 +293,16 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
             oz_miss_sum = tab.loc[tab.index[i]:tab.index[i+term]].oz_miss.sum()
             
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            _swing = swing_sum/raw_num_sum*100 if raw_num_sum > 0 else 0
+            _con = (1-miss_sum/swing_sum)*100 if swing_sum > 0 else 0
+            _izswing = iz_swing_sum/iz_raw_num_sum*100 if iz_raw_num_sum > 0 else 0
+            _izcon = (1-iz_miss_sum/iz_swing_sum)*100 if iz_swing_sum > 0 else 0
+            _ozswing = oz_swing_sum/oz_raw_num_sum*100 if oz_raw_num_sum > 0 else 0
+            _ozcon = (1-oz_miss_sum/oz_swing_sum)*100 if oz_swing_sum > 0 else 0
             
-            result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/swing_sum)*100,
-                               iz_swing_sum/iz_raw_num_sum*100,
-                               (1-iz_miss_sum/iz_swing_sum)*100,
-                               oz_swing_sum/oz_raw_num_sum*100,
-                               (1-oz_miss_sum/oz_swing_sum)*100])
+            result_sum.append([_swing, _con,
+                               _izswing, _izcon,
+                               _ozswing, _ozcon])
             
         fig.suptitle(f'{batter}\'s {ma_term}-Game Rolling Average')
 
@@ -478,15 +486,17 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
             
             # avg, obp, slg, ops, babip
             # OAVG, OOBP, OSLG, OOPS, BABIP, K%, BB% 
-            
-            result_sum.append([hit_sum/ab_sum, # oavg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # oobp
-                               tb_sum/ab_sum, # oslg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, # oops
-                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum), # babip
-                               so_sum / pa_sum, # K%
-                               bb_sum / pa_sum # BB%
-                              ])
+            _oavg = hit_sum/ab_sum if ab_sum > 0 else 0
+            _oobp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
+            _oslg = tb_sum/ab_sum if ab_sum > 0 else 0
+            _oops = _obp + _slg
+            _obabip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
+            _krate = so_sum / pa_sum if pa_sum > 0 else 0
+            _bbrate = bb_sum / pa_sum if pa_sum > 0 else 0
+
+            result_sum.append([_oavg, _oobp, _oslg,
+                               _oops, _obabip,
+                               _krate, _bbrate])
             
         fig.suptitle(f'{pitcher}\'s Cumulative Average', fontsize=10)
     else:
@@ -505,15 +515,17 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
             hbp_sum = tab.loc[tab.index[i]:tab.index[i+term]].hbp.sum()
             
             # avg, obp, slg, ops, babip
-            
-            result_sum.append([hit_sum/ab_sum, # avg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum), # oobp
-                               tb_sum/ab_sum, # slg
-                               (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) + tb_sum/ab_sum, # oops
-                               (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum), # babip
-                               so_sum / pa_sum, # K%
-                               bb_sum / pa_sum # BB%
-                              ])
+            _oavg = hit_sum/ab_sum if ab_sum > 0 else 0
+            _oobp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
+            _oslg = tb_sum/ab_sum if ab_sum > 0 else 0
+            _oops = _obp + _slg
+            _obabip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
+            _krate = so_sum / pa_sum if pa_sum > 0 else 0
+            _bbrate = bb_sum / pa_sum if pa_sum > 0 else 0
+
+            result_sum.append([_oavg, _oobp, _oslg,
+                               _oops, _obabip,
+                               _krate, _bbrate])
             
         fig.suptitle(f'{pitcher}\'s {ma_term}-Game Rolling Average')
 
@@ -716,13 +728,17 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
             oz_miss_sum += tab.loc[i].oz_miss
             
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            _swing = swing_sum/raw_num_sum*100 if raw_num_sum > 0 else 0
+            _con = (1-miss_sum/swing_sum)*100 if swing_sum > 0 else 0
+            _izswing = iz_swing_sum/iz_raw_num_sum*100 if iz_raw_num_sum > 0 else 0
+            _izcon = (1-iz_miss_sum/iz_swing_sum)*100 if iz_swing_sum > 0 else 0
+            _ozswing = oz_swing_sum/oz_raw_num_sum*100 if oz_raw_num_sum > 0 else 0
+            _ozcon = (1-oz_miss_sum/oz_swing_sum)*100 if oz_swing_sum > 0 else 0
             
-            result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/swing_sum)*100,
-                               iz_swing_sum/iz_raw_num_sum*100,
-                               (1-iz_miss_sum/iz_swing_sum)*100,
-                               oz_swing_sum/oz_raw_num_sum*100,
-                               (1-oz_miss_sum/oz_swing_sum)*100])
+            result_sum.append([_swing, _con,
+                               _izswing, _izcon,
+                               _ozswing, _ozcon])
+
             
         fig.suptitle(f'{pitcher}\'s Cumulative Average', fontsize=10)
     else:
@@ -740,13 +756,16 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
             oz_miss_sum = tab.loc[tab.index[i]:tab.index[i+term]].oz_miss.sum()
             
             #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
+            _swing = swing_sum/raw_num_sum*100 if raw_num_sum > 0 else 0
+            _con = (1-miss_sum/swing_sum)*100 if swing_sum > 0 else 0
+            _izswing = iz_swing_sum/iz_raw_num_sum*100 if iz_raw_num_sum > 0 else 0
+            _izcon = (1-iz_miss_sum/iz_swing_sum)*100 if iz_swing_sum > 0 else 0
+            _ozswing = oz_swing_sum/oz_raw_num_sum*100 if oz_raw_num_sum > 0 else 0
+            _ozcon = (1-oz_miss_sum/oz_swing_sum)*100 if oz_swing_sum > 0 else 0
             
-            result_sum.append([swing_sum/raw_num_sum*100,
-                               (1-miss_sum/swing_sum)*100,
-                               iz_swing_sum/iz_raw_num_sum*100,
-                               (1-iz_miss_sum/iz_swing_sum)*100,
-                               oz_swing_sum/oz_raw_num_sum*100,
-                               (1-oz_miss_sum/oz_swing_sum)*100])
+            result_sum.append([_swing, _con,
+                               _izswing, _izcon,
+                               _ozswing, _ozcon])
             
         fig.suptitle(f'{pitcher}\'s {ma_term}-Game Rolling Average')
 
