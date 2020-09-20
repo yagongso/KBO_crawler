@@ -934,7 +934,10 @@ class game_status:
                 lines = lines[1:-1]
                 lines.reverse()
                 for i in range(0, len(lines), 2):
-                    rl.append(f'\t{lines[i].strip()} at {lines[i+1].strip()}')
+                    if i+1 < len(lines):
+                        rl.append(f'\t{lines[i].strip()} at {lines[i+1].strip()}')
+                    else:
+                        rl.append(f'\t{lines[i].strip()}')
                 self.log_text += rl
                 if self.log_file is not None:
                     if not self.log_file.closed:
