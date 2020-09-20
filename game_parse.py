@@ -296,7 +296,7 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
-        self.relay_array = rdf[rdf_cols].sort_values(['textOrder', 'seqno']).values
+        self.relay_array = rdf.loc[rdf.seqno.drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
     def convert_row_to_save_format(self, row,
@@ -921,6 +921,14 @@ class game_status:
                 self.log_text.append("-"*60)
                 self.log_text.append(f"=== gameID : {self.game_id}")
                 self.log_text.append("-"*60)
+
+                tb = '말' if self.top_bot == 1 else '초'
+
+                self.log_text.append(f'  GAME STATUS : {self.inn}회{tb} '+
+                                     f'{self.outs}사 {self.strikes}S {self.balls}B '
+                                     f'{self.cur_order}번타자 {self.batter_name}타석 '+
+                                     f'{self.pitch_number}구')
+
                 lines = traceback.format_exc().strip().split('\n')
                 rl = [lines[-1]]
                 lines = lines[1:-1]
@@ -933,6 +941,14 @@ class game_status:
                         for row in self.log_text:
                             self.log_file.write(row + '\n')
             return False
+
+    def print_current_status(self):
+        tb = '말' if self.top_bot == 1 else '초'
+
+        print(f'  GAME STATUS : {self.inn}회{tb} '+
+              f'{self.outs}사 {self.strikes}S {self.balls}B '
+              f'{self.cur_order}번타자 {self.batter_name}타석 '+
+              f'{self.pitch_number}구')
 
     def save_game(self, path=None):
         if len(self.print_rows) > 0:
