@@ -215,6 +215,12 @@ class game_status:
         self.log_file = None
         self.log_text = []
 
+        # debug
+        self.ind = 0
+        self.cur_row = None
+        self.cur_text = ''
+        self.text_stack = None
+
     def load(self, game_id, pdf, bdf, rdf, log_file=None):
         self.pitching_df = pdf
         self.batting_df = bdf
@@ -296,7 +302,7 @@ class game_status:
             if col in rdf.columns:
                 rdf_cols.append(col)
 
-        self.relay_array = rdf.loc[rdf.seqno.drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
+        self.relay_array = rdf.loc[rdf[['textOrder', 'seqno']].drop_duplicates().index][rdf_cols].sort_values(['textOrder', 'seqno']).values
 
 
     def convert_row_to_save_format(self, row,
@@ -644,24 +650,22 @@ class game_status:
 
                             for i in range(9):
                                 if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
-                                (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
+                                   (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
                                     before_code = self.lineups[1 - self.top_bot][i].get('code')
                                     order = i + 1
                                     break
                             if order is None:
                                 for i in range(9):
                                     if (self.lineups[self.top_bot][i].get('name') == before_name) &\
-                                    (self.lineups[self.top_bot][i].get('pos') == before_pos):
+                                       (self.lineups[self.top_bot][i].get('pos') == before_pos):
                                         before_code = self.lineups[self.top_bot][i].get('code')
                                         order = i + 1
                                         break
-                            else:
+                            if before_code is None:
                                 if debug_mode is True:
                                     self.log_text.append('cant find player name/position in lineup')
                                 assert False
                         except:
-                            if debug_mode is True:
-                                self.log_text.append('cant find player name/position in lineup')
                             assert False
                     if self.top_bot == 0:
                         for i in range(len(self.home_batter_list) - 1):
@@ -704,13 +708,13 @@ class game_status:
 
     def parse_game(self, debug_mode=False):
         try:
-            ind = 0
+            self.ind = 0
             self.inn = 0
             self.top_bot = 1
-            while ind < self.relay_array.shape[0]:
-                row = self.relay_array[ind]
+            while self.ind < self.relay_array.shape[0]:
+                row = self.relay_array[self.ind]
                 cur_type = row[3]
-                cur_text = row[2]
+                self.cur_text = row[2]
                 cur_to = row[0]
 
                 ##############################
@@ -720,7 +724,7 @@ class game_status:
                 if cur_type == 1:
                     self.last_pitch = row
                     self.pitch_number += 1
-                    res = cur_text.split(' ')[-1]
+                    res = self.cur_text.split(' ')[-1]
                     self.pitch_result = res
                     # 인플레이/삼진/볼넷 이외에는 여기서 row print
                     # 몸에맞는공은 타석 결과에서 수정
@@ -740,11 +744,11 @@ class game_status:
                         if debug_mode is True:
                             self.log_text.append('3S/4B/3O')
                         assert False
-                    ind = ind + 1
+                    self.ind = self.ind + 1
 
                 elif cur_type == 8:
                     # 타석 시작(x번타자 / 대타)
-                    position = cur_text.split(' ')[0]
+                    position = self.cur_text.split(' ')[0]
                     self.last_pitch = None
                     self.pa_result = None
                     self.pitch_result = None
@@ -760,8 +764,8 @@ class game_status:
 
                         # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
                         # 임시조치에 불과함~
-                        if self.batter_name != cur_text.split(' ')[1]:
-                            self.batter_name = cur_text.split(' ')[1]
+                        if self.batter_name != self.cur_text.split(' ')[1]:
+                            self.batter_name = self.cur_text.split(' ')[1]
                             self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
 
                             if self.top_bot == 0:
@@ -783,9 +787,9 @@ class game_status:
                     else:
                         self.batter_name, self.batter_code,\
                         _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
-                        if self.batter_name != cur_text.split(' ')[1]:
-                            if len(cur_text.strip().split(' ')) > 1:
-                                self.batter_name = cur_text.strip().split(' ')[1]
+                        if self.batter_name != self.cur_text.split(' ')[1]:
+                            if len(self.cur_text.strip().split(' ')) > 1:
+                                self.batter_name = self.cur_text.strip().split(' ')[1]
                                 self.lineups[self.top_bot][self.cur_order - 1]['name'] =self. batter_name
                                 if self.top_bot == 0:
                                     for p in self.away_batter_list:
@@ -807,27 +811,27 @@ class game_status:
                                         runner[0] = self.batter_name
                                         runner[1] = self.batter_code
                                         break
-                    ind = ind + 1
+                    self.ind = self.ind + 1
                 elif (cur_type == 13) or (cur_type == 23):
                     # 타자주자(비득점/득점)
-                    runner_stack = []
-                    cur_ind = ind
-                    cur_row = self.relay_array[cur_ind]
+                    self.text_stack = []
+                    cur_ind = self.ind
+                    self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
 
                     while ((cur_type == 13) or (cur_type == 23) or\
                            (cur_type == 14) or (cur_type == 24)):
-                        runner_stack.append(cur_row)
-                        self.description += cur_row[2].strip() + '; '
+                        self.text_stack.append(self.cur_row)
+                        self.description += self.cur_row[2].strip() + '; '
                         cur_ind += 1
 
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
-                        cur_row = self.relay_array[cur_ind]
-                        cur_type = cur_row[3]
+                        self.cur_row = self.relay_array[cur_ind]
+                        cur_type = self.cur_row[3]
                     self.description = self.description.strip()
 
-                    result = parse_batter_result(cur_text.strip())
+                    result = parse_batter_result(self.cur_text.strip())
                     self.pa_result = result[0]
                     self.pa_result_detail = result[1]
 
@@ -840,33 +844,33 @@ class game_status:
                                                                    [self.description, self.pa_result, self.pa_result_detail])
                         self.print_rows.append(save_row)
 
-                    ind = cur_ind
-                    self.handle_runner_stack(runner_stack, debug_mode)
+                    self.ind = cur_ind
+                    self.handle_runner_stack(self.text_stack, debug_mode)
                 elif (cur_type == 14) or (cur_type == 24):
                     # 주자(비득점/득점)
-                    runner_stack = []
-                    cur_ind = ind
-                    cur_row = self.relay_array[cur_ind]
+                    self.text_stack = []
+                    cur_ind = self.ind
+                    self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
                     while (cur_type == 14) or (cur_type == 24):
-                        runner_stack.append(cur_row)
-                        self.description += cur_row[2].strip() + '; '
+                        self.text_stack.append(self.cur_row)
+                        self.description += self.cur_row[2].strip() + '; '
                         cur_ind = cur_ind + 1
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
-                        cur_row = self.relay_array[cur_ind]
-                        cur_type = cur_row[3]
+                        self.cur_row = self.relay_array[cur_ind]
+                        cur_type = self.cur_row[3]
                     self.description = self.description.strip()
 
                     save_row = self.convert_row_to_save_format(None,
                                                                [self.description, None, None])
                     self.print_rows.append(save_row)
-                    ind = cur_ind
+                    self.ind = cur_ind
 
-                    self.handle_runner_stack(runner_stack, debug_mode)
+                    self.handle_runner_stack(self.text_stack, debug_mode)
                 elif cur_type == 0:
                     # 이닝 시작
-                    ind = ind + 1
+                    self.ind = self.ind + 1
                     if (len(self.print_rows) > 0) & (self.outs < 3):
                         if debug_mode is True:
                             self.log_text.append('outs < 3')
@@ -884,37 +888,37 @@ class game_status:
                     self.pitch_number = 0
                 elif cur_type == 2:
                      # 교체/변경
-                    text_stack = []
-                    cur_ind = ind
-                    cur_row = self.relay_array[cur_ind]
+                    self.text_stack = []
+                    cur_ind = self.ind
+                    self.cur_row = self.relay_array[cur_ind]
                     self.description = ''
 
-                    while cur_row[3] == 2:
-                        text_stack.append(cur_row[2])
-                        self.description += cur_row[2].strip() + '; '
+                    while self.cur_row[3] == 2:
+                        self.text_stack.append(self.cur_row[2])
+                        self.description += self.cur_row[2].strip() + '; '
                         cur_ind = cur_ind + 1
                         if self.relay_array[cur_ind][0] != cur_to:
                             break
-                        cur_row = self.relay_array[cur_ind]
+                        self.cur_row = self.relay_array[cur_ind]
                     self.description = self.description.strip()
-                    ind = cur_ind
+                    self.ind = cur_ind
 
                     save_row = self.convert_row_to_save_format(None,
                                                                [self.description, None, None])
                     self.print_rows.append(save_row)
 
-                    self.handle_change(text_stack, debug_mode)
+                    self.handle_change(self.text_stack, debug_mode)
                 elif cur_type == 7:
-                    ind = ind + 1
+                    self.ind = self.ind + 1
                 else:
-                    ind = ind + 1
+                    self.ind = self.ind + 1
             return True
         except:
-            ind = len(self.print_rows)-1
-            while ind >= 0:
-                if self.print_rows[ind]['pa_number'] == self.pa_number:
+            prlen = len(self.print_rows)-1
+            while prlen >= 0:
+                if self.print_rows[prlen]['pa_number'] == self.pa_number:
                     self.print_rows = self.print_rows[:-1]
-                    ind -= 1
+                    prlen -= 1
                 else:
                     break
             if debug_mode is True:

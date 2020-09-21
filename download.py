@@ -1,5 +1,6 @@
 import pandas as pd
-import sys, time, requests, json, datetime, pathlib
+import sys, time, requests, json, datetime, pathlib, warnings
+import numpy as np
 from dateutil.relativedelta import relativedelta
 from tqdm import tqdm, trange
 from bs4 import BeautifulSoup
@@ -137,256 +138,325 @@ def get_game_data(game_id):
                    + '&tab=relay'
     }
 
-    #####################################
-    # 1. pitch by pitch 데이터 가져오기 #
-    #####################################
-    relay_response = requests.get(relay_url,
-                                  params=params,
-                                  headers=headers)
-    if relay_response.status_code > 200:
-        relay_response.close()
-        return [None, None, 'response error\n']
-
-    relay_json = relay_response.json()
-    js = None
-    try:
-        js = json.loads(relay_json)
-        relay_response.close()
-    except JSONDecodeError:
-        relay_response.close()
-        return [None, None, 'got no valid data\n']
-
-    if js.get('gameId') is None:
-        return [None, None, 'invalid game ID\n']
-
-    last_inning = js['currentInning']
-
-    if last_inning is None:
-        return [None, None, 'no last inning\n']
-
-    game_data_set = {}
-    game_data_set['relayList'] = []
-    for x in js['relayList']:
-        game_data_set['relayList'].append(x)
-
-    # 라인업에 대한 기초 정보가 담겨 있음
-    game_data_set['homeTeamLineUp'] = js['homeTeamLineUp']
-    game_data_set['awayTeamLineUp'] = js['awayTeamLineUp']
-
-    game_data_set['stadium'] = js['schedule']['stadium']
-
-    for inn in range(2, last_inning + 1):
-        params = {
-            'gameId': game_id,
-            'half': str(inn)
-        }
-
-        relay_inn_response = requests.get(relay_url, params=params, headers=headers)
-        if relay_inn_response.status_code > 200:
-            relay_inn_response.close()
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        #####################################
+        # 1. pitch by pitch 데이터 가져오기 #
+        #####################################
+        relay_response = requests.get(relay_url,
+                                      params=params,
+                                      headers=headers)
+        if relay_response.status_code > 200:
+            relay_response.close()
             return [None, None, 'response error\n']
 
-        relay_json = relay_inn_response.json()
+        relay_json = relay_response.json()
+        js = None
         try:
             js = json.loads(relay_json)
             relay_response.close()
         except JSONDecodeError:
-            relay_inn_response.close()
+            relay_response.close()
             return [None, None, 'got no valid data\n']
 
+        if js.get('gameId') is None:
+            return [None, None, 'invalid game ID\n']
+
+        last_inning = js['currentInning']
+
+        if last_inning is None:
+            return [None, None, 'no last inning\n']
+
+        game_data_set = {}
+        game_data_set['relayList'] = []
         for x in js['relayList']:
             game_data_set['relayList'].append(x)
 
-    #########################
-    # 2. 가져온 정보 다듬기 #
-    #########################
-    relay_list = game_data_set['relayList']
-    text_keys = ['seqno', 'text', 'type', 'stuff',
-                 'ptsPitchId', 'speed', 'playerChange']
-    pitch_keys = ['crossPlateX', 'topSz',
-                  'pitchId', 'vy0', 'vz0', 'vx0',
-                  'z0', 'ax', 'x0', 'ay', 'az',
-                  'bottomSz']
+        # 라인업에 대한 기초 정보가 담겨 있음
+        game_data_set['homeTeamLineUp'] = js['homeTeamLineUp']
+        game_data_set['awayTeamLineUp'] = js['awayTeamLineUp']
 
-    # pitch by pitch 텍스트 데이터 취합
-    text_set = []
-    stadium = game_data_set['stadium']
-    for k in range(len(relay_list)):
-        for j in range(len(relay_list[k].get('textOptionList'))):
-            text_row = relay_list[k].get('textOptionList')[j]
+        game_data_set['stadium'] = js['schedule']['stadium']
 
-            text_row_dict = {}
-            text_row_dict['textOrder'] = relay_list[k].get('no')
-            for key in text_keys:
-                if key == 'playerChange':
-                    if text_row.get(key) is not None:
-                        for x in ['outPlayer', 'inPlayer', 'shiftPlayer']:
-                            if x in text_row.get(key).keys():
-                                text_row_dict[x] = text_row.get(key).get(x).get('playerId')
-                else:
-                    text_row_dict[key] = None if key not in text_row.keys() else text_row.get(key)
-            # text_row_dict['referee'] = referee
-            text_row_dict['stadium'] = stadium
-            text_set.append(text_row_dict)
-    text_set_df = pd.DataFrame(text_set)
-    text_set_df = text_set_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
-    text_set_df.seqno = pd.to_numeric(text_set_df.seqno)
+        for inn in range(2, last_inning + 1):
+            params = {
+                'gameId': game_id,
+                'half': str(inn)
+            }
 
-    # pitch by pitch 트래킹 데이터 취합
-    pitch_data_set = []
-    pitch_data_df = None
-    for k in range(len(relay_list)):
-        if relay_list[k].get('ptsOptionList') is not None:
-            for j in range(len(relay_list[k].get('ptsOptionList'))):
-                pitch_data = relay_list[k].get('ptsOptionList')[j]
+            relay_inn_response = requests.get(relay_url, params=params, headers=headers)
+            if relay_inn_response.status_code > 200:
+                relay_inn_response.close()
+                return [None, None, 'response error\n']
 
-                pitch_data_dict = {}
-                pitch_data_dict['textOrder'] = relay_list[k].get('no')
-                for key in pitch_keys:
-                    pitch_data_dict[key] = None if key not in pitch_data.keys() else pitch_data.get(key)
-                pitch_data_set.append(pitch_data_dict)
+            relay_json = relay_inn_response.json()
+            try:
+                js = json.loads(relay_json)
+                relay_response.close()
+            except JSONDecodeError:
+                relay_inn_response.close()
+                return [None, None, 'got no valid data\n']
 
-    # 텍스트(중계) 데이터, 트래킹 데이터 취합
-    if len(pitch_data_set) > 0:
-        pitch_data_df = pd.DataFrame(pitch_data_set)
-        relay_df = pd.merge(text_set_df, pitch_data_df, how='outer').sort_values(['textOrder', 'seqno'])
-    else:
-        relay_df = text_set_df.sort_values(['textOrder', 'seqno'])
+            for x in js['relayList']:
+                game_data_set['relayList'].append(x)
 
-    ##################################################
-    # 3. 선발 라인업, 포지션, 레퍼리 데이터 가져오기 #
-    ##################################################
-    lineup_url = 'https://sports.news.naver.com/gameCenter'\
-                 '/gameRecord.nhn?category=kbo&gameId='
-    lineup_response = requests.get(lineup_url + game_id)
+        #########################
+        # 2. 가져온 정보 다듬기 #
+        #########################
+        relay_list = game_data_set['relayList']
+        text_keys = ['seqno', 'text', 'type', 'stuff',
+                     'ptsPitchId', 'speed', 'playerChange']
+        pitch_keys = ['crossPlateX', 'topSz',
+                      'pitchId', 'vy0', 'vz0', 'vx0',
+                      'z0', 'ax', 'x0', 'ay', 'az',
+                      'bottomSz']
 
-    if lineup_response.status_code > 200:
+        # pitch by pitch 텍스트 데이터 취합
+        text_set = []
+        stadium = game_data_set['stadium']
+        for k in range(len(relay_list)):
+            for j in range(len(relay_list[k].get('textOptionList'))):
+                text_row = relay_list[k].get('textOptionList')[j]
+
+                text_row_dict = {}
+                text_row_dict['textOrder'] = relay_list[k].get('no')
+                for key in text_keys:
+                    if key == 'playerChange':
+                        if text_row.get(key) is not None:
+                            for x in ['outPlayer', 'inPlayer', 'shiftPlayer']:
+                                if x in text_row.get(key).keys():
+                                    text_row_dict[x] = text_row.get(key).get(x).get('playerId')
+                    else:
+                        text_row_dict[key] = None if key not in text_row.keys() else text_row.get(key)
+                # text_row_dict['referee'] = referee
+                text_row_dict['stadium'] = stadium
+                text_set.append(text_row_dict)
+        text_set_df = pd.DataFrame(text_set)
+        text_set_df = text_set_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
+        text_set_df.seqno = pd.to_numeric(text_set_df.seqno)
+
+        # pitch by pitch 트래킹 데이터 취합
+        pitch_data_set = []
+        pitch_data_df = None
+        for k in range(len(relay_list)):
+            if relay_list[k].get('ptsOptionList') is not None:
+                for j in range(len(relay_list[k].get('ptsOptionList'))):
+                    pitch_data = relay_list[k].get('ptsOptionList')[j]
+
+                    pitch_data_dict = {}
+                    pitch_data_dict['textOrder'] = relay_list[k].get('no')
+                    for key in pitch_keys:
+                        pitch_data_dict[key] = None if key not in pitch_data.keys() else pitch_data.get(key)
+                    pitch_data_set.append(pitch_data_dict)
+
+        # 텍스트(중계) 데이터, 트래킹 데이터 취합
+        if len(pitch_data_set) > 0:
+            pitch_data_df = pd.DataFrame(pitch_data_set)
+            relay_df = pd.merge(text_set_df, pitch_data_df, how='outer').sort_values(['textOrder', 'seqno'])
+        else:
+            relay_df = text_set_df.sort_values(['textOrder', 'seqno'])
+
+        ##################################################
+        # 3. 선발 라인업, 포지션, 레퍼리 데이터 가져오기 #
+        ##################################################
+        lineup_url = 'https://sports.news.naver.com/gameCenter'\
+                     '/gameRecord.nhn?category=kbo&gameId='
+        lineup_response = requests.get(lineup_url + game_id)
+
+        if lineup_response.status_code > 200:
+            lineup_response.close()
+            return [None, None, 'response error\n']
+
+        lineup_soup = BeautifulSoup(lineup_response.text, 'lxml')
         lineup_response.close()
-        return [None, None, 'response error\n']
 
-    lineup_soup = BeautifulSoup(lineup_response.text, 'lxml')
-    lineup_response.close()
+        scripts = lineup_soup.find_all('script')
+        if scripts[10].contents[0].find('잘못된') > 0:
+            return [None, None, 'false script page\n']
 
-    scripts = lineup_soup.find_all('script')
-    if scripts[10].contents[0].find('잘못된') > 0:
-        return [None, None, 'false script page\n']
+        team_names = lineup_soup.find_all('span', attrs={'class': 't_name_txt'})
+        away_team_name = team_names[0].contents[0].split(' ')[0]
+        home_team_name = team_names[1].contents[0].split(' ')[0]
 
-    team_names = lineup_soup.find_all('span', attrs={'class': 't_name_txt'})
-    away_team_name = team_names[0].contents[0].split(' ')[0]
-    home_team_name = team_names[1].contents[0].split(' ')[0]
-
-    for tag in scripts:
-        if len(tag.contents) > 0:
-            if tag.contents[0].find('DataClass = ') > 0:
-                contents = tag.contents[0]
-                start = contents.find('DataClass = ') + 36
-                end = contents.find('_homeTeam')
-                oldjs = contents[start:end].strip()
-                while oldjs[-1] != '}':
-                    oldjs = oldjs[:-1]
-                while oldjs[0] != '{':
-                    oldjs = oldjs[1:]
-                try:
-                    cont = json.loads(oldjs)
-                except JSONDecodeError:
-                    return [None, None, f'JSONDecodeError - gameID {game_id}\n']
-                break
-
-    # 구심 정보 가져와서 취합
-    referee = cont.get('etcRecords')[-1]['result'].split(' ')[0]
-    relay_df = relay_df.assign(referee = referee)
-
-    # 경기 끝나고 나오는 박스스코어, 홈/어웨이 라인업
-    boxscore = cont.get('battersBoxscore')
-    away_lineup = boxscore.get('away')
-    home_lineup = boxscore.get('home')
-
-    pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수',
-                '유': '유격수', '포': '포수', '지': '지명타자',
-                '一': '1루수', '二': '2루수', '三': '3루수'}
-
-    home_players = []
-    away_players = []
-
-    for i in range(len(home_lineup)):
-        player = home_lineup[i]
-        name = player.get('name')
-        pos = player.get('pos')[0]
-        pCode = player.get('playerCode')
-        home_players.append({'name': name, 'pos': pos, 'pCode': pCode})
-
-    for i in range(len(away_lineup)):
-        player = away_lineup[i]
-        name = player.get('name')
-        pos = player.get('pos')[0]
-        pCode = player.get('playerCode')
-        away_players.append({'name': name, 'pos': pos, 'pCode': pCode})
-
-
-    ##############################
-    # 4. 기존 라인업 정보와 취합 #
-    ##############################
-    hit_columns = ['name', 'pCode', 'posName',
-                   'hitType', 'seqno', 'batOrder']
-    pit_columns = ['name', 'pCode', 'hitType', 'seqno']
-
-    atl = game_data_set.get('awayTeamLineUp')
-    abat = atl.get('batter')
-    apit = atl.get('pitcher')
-    abats = pd.DataFrame(abat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
-    apits = pd.DataFrame(apit, columns=pit_columns).sort_values('seqno')
-
-    htl = game_data_set.get('homeTeamLineUp')
-    hbat = htl.get('batter')
-    hpit = htl.get('pitcher')
-    hbats = pd.DataFrame(hbat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
-    hpits = pd.DataFrame(hpit, columns=pit_columns).sort_values('seqno')
-
-    # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
-    # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
-    for player in away_players:
-        # '교'로 적혀있는 교체 선수는 넘어간다
-        if player.get('pos') == '교':
-            continue
-        abats.loc[(abats.name == player.get('name')) &
-                  (abats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
-        if len(player.get('name')) > 3:
-            pname = player.get('name')
-            for i in range(len(abats)):
-                if abats.iloc[i].values[0].find(pname) > -1:
-                    pCode = abats.iloc[i].pCode
-                    abats.loc[(abats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+        for tag in scripts:
+            if len(tag.contents) > 0:
+                if tag.contents[0].find('DataClass = ') > 0:
+                    contents = tag.contents[0]
+                    start = contents.find('DataClass = ') + 36
+                    end = contents.find('_homeTeam')
+                    oldjs = contents[start:end].strip()
+                    while oldjs[-1] != '}':
+                        oldjs = oldjs[:-1]
+                    while oldjs[0] != '{':
+                        oldjs = oldjs[1:]
+                    try:
+                        cont = json.loads(oldjs)
+                    except JSONDecodeError:
+                        return [None, None, f'JSONDecodeError - gameID {game_id}\n']
                     break
 
-    for player in home_players:
-        # '교'로 적혀있는 교체 선수는 넘어간다
-        if player.get('pos') == '교':
-            continue
-        hbats.loc[(hbats.name == player.get('name')) &
-                  (hbats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
-        if len(player.get('name')) > 3:
-            pname = player.get('name')
-            for i in range(len(hbats)):
-                if hbats.iloc[i].values[0].find(pname) > -1:
-                    pCode = hbats.iloc[i].pCode
-                    hbats.loc[(hbats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
-                    break
+        # 구심 정보 가져와서 취합
+        referee = cont.get('etcRecords')[-1]['result'].split(' ')[0]
+        relay_df = relay_df.assign(referee = referee)
 
-    abats['homeaway'] = 'a'
-    hbats['homeaway'] = 'h'
-    apits['homeaway'] = 'a'
-    hpits['homeaway'] = 'h'
-    abats['team_name'] = away_team_name
-    hbats['team_name'] = home_team_name
-    apits['team_name'] = away_team_name
-    hpits['team_name'] = home_team_name
+        # 경기 끝나고 나오는 박스스코어, 홈/어웨이 라인업
+        boxscore = cont.get('battersBoxscore')
+        away_lineup = boxscore.get('away')
+        home_lineup = boxscore.get('home')
 
-    batting_df = pd.concat([abats, hbats])
-    pitching_df = pd.concat([apits, hpits])
-    batting_df.pCode = pd.to_numeric(batting_df.pCode)
-    pitching_df.pCode = pd.to_numeric(pitching_df.pCode)
+        pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수',
+                    '유': '유격수', '포': '포수', '지': '지명타자',
+                    '一': '1루수', '二': '2루수', '三': '3루수'}
 
-    return pitching_df, batting_df, relay_df
+        home_players = []
+        away_players = []
+
+        for i in range(len(home_lineup)):
+            player = home_lineup[i]
+            name = player.get('name')
+            pos = player.get('pos')[0]
+            pCode = player.get('playerCode')
+            home_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+
+        for i in range(len(away_lineup)):
+            player = away_lineup[i]
+            name = player.get('name')
+            pos = player.get('pos')[0]
+            pCode = player.get('playerCode')
+            away_players.append({'name': name, 'pos': pos, 'pCode': pCode})
+
+
+        ##############################
+        # 4. 기존 라인업 정보와 취합 #
+        ##############################
+        hit_columns = ['name', 'pCode', 'posName',
+                       'hitType', 'seqno', 'batOrder']
+        pit_columns = ['name', 'pCode', 'hitType', 'seqno']
+
+        atl = game_data_set.get('awayTeamLineUp')
+        abat = atl.get('batter')
+        apit = atl.get('pitcher')
+        abats = pd.DataFrame(abat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        apits = pd.DataFrame(apit, columns=pit_columns).sort_values('seqno')
+
+        htl = game_data_set.get('homeTeamLineUp')
+        hbat = htl.get('batter')
+        hpit = htl.get('pitcher')
+        hbats = pd.DataFrame(hbat, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        hpits = pd.DataFrame(hpit, columns=pit_columns).sort_values('seqno')
+
+        #####################################
+        # 5. 라인업 정보 보강             #
+        #####################################
+        record_response = requests.get(record_url,
+                                      params=params,
+                                      headers=headers)
+        if record_response.status_code > 200:
+            record_response.close()
+            return [None, None, 'response error\n']
+
+        record_json = record_response.json()
+        record_response.close()
+
+        apr = pd.DataFrame(record_json['awayPitcher'])
+        hpr = pd.DataFrame(record_json['homePitcher'])
+        abr = pd.DataFrame(record_json['awayBatter'])
+        hbr = pd.DataFrame(record_json['homeBatter'])
+        apr = apr.rename(index=str, columns={'pcode':'pCode'})
+        hpr = hpr.rename(index=str, columns={'pcode':'pCode'})
+        abr = abr.rename(index=str, columns={'pcode':'pCode'})
+        hbr = hbr.rename(index=str, columns={'pcode':'pCode'})
+
+        apr.loc[:, 'seqno'] = 10
+        apr.loc[:, 'hitType'] = None
+        hpr.loc[:, 'seqno'] = 10
+        hpr.loc[:, 'hitType'] = None
+
+        abr.loc[:, 'seqno'] = 10
+        abr.loc[:, 'hitType'] = None
+        abr.loc[:, 'posName'] = None
+        hbr.loc[:, 'seqno'] = 10
+        hbr.loc[:, 'hitType'] = None
+        hbr.loc[:, 'posName'] = None
+
+        for p in apr.pCode.unique():
+            if p in apits.pCode.unique():
+                apr.loc[(apr.pCode == p), 'seqno'] = int(apits.loc[apits.pCode == p].seqno.values[0])
+                apr.loc[(apr.pCode == p), 'hitType'] = apits.loc[apits.pCode == p].hitType.values[0]
+            else:
+                apr.loc[(apr.pCode == p), 'seqno'] = 10
+        for p in hpr.pCode.unique():
+            if p in hpits.pCode.unique():
+                hpr.loc[(hpr.pCode == p), 'seqno'] = int(hpits.loc[hpits.pCode == p].seqno.values[0])
+                hpr.loc[(hpr.pCode == p), 'hitType'] = hpits.loc[hpits.pCode == p].hitType.values[0]
+            else:
+                hpr.loc[(hpr.pCode == p), 'seqno'] = 10
+        for p in abats.pCode.unique():
+            if p in abats.pCode.unique():
+                abr.loc[(abr.pCode == p), 'seqno'] = int(abats.loc[abats.pCode == p].seqno.values[0])
+                abr.loc[(abr.pCode == p), 'posName'] = abats.loc[abats.pCode == p].posName.values[0]
+                abr.loc[(abr.pCode == p), 'hitType'] = abats.loc[abats.pCode == p].hitType.values[0]
+            else:
+                abr.loc[(abr.pCode == p), 'seqno'] = 10
+        for p in hbats.pCode.unique():
+            if p in hbats.pCode.unique():
+                hbr.loc[(hbr.pCode == p), 'seqno'] = int(hbats.loc[hbats.pCode == p].seqno.values[0])
+                hbr.loc[(hbr.pCode == p), 'posName'] = hbats.loc[hbats.pCode == p].posName.values[0]
+                hbr.loc[(hbr.pCode == p), 'hitType'] = hbats.loc[hbats.pCode == p].hitType.values[0]
+            else:
+                hbr.loc[(hbr.pCode == p), 'seqno'] = 10
+
+        apr = apr.astype({'seqno': int})
+        hpr = hpr.astype({'seqno': int})
+        abr = abr.astype({'seqno': int})
+        hbr = hbr.astype({'seqno': int})
+
+        apits = apr[pit_columns]
+        hpits = hpr[pit_columns]
+        abats = abr[hit_columns]
+        hbats = hbr[hit_columns]
+
+        # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
+        # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
+        for player in away_players:
+            # '교'로 적혀있는 교체 선수는 넘어간다
+            if player.get('pos') == '교':
+                continue
+            abats.loc[(abats.name == player.get('name')) &
+                      (abats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+            if len(player.get('name')) > 3:
+                pname = player.get('name')
+                for i in range(len(abats)):
+                    if abats.iloc[i].values[0].find(pname) > -1:
+                        pCode = abats.iloc[i].pCode
+                        abats.loc[(abats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                        break
+
+        for player in home_players:
+            # '교'로 적혀있는 교체 선수는 넘어간다
+            if player.get('pos') == '교':
+                continue
+            hbats.loc[(hbats.name == player.get('name')) &
+                      (hbats.pCode == player.get('pCode')), 'posName'] = pos_dict.get(player.get('pos'))
+            if len(player.get('name')) > 3:
+                pname = player.get('name')
+                for i in range(len(hbats)):
+                    if hbats.iloc[i].values[0].find(pname) > -1:
+                        pCode = hbats.iloc[i].pCode
+                        hbats.loc[(hbats.pCode == pCode), 'posName'] = pos_dict.get(player.get('pos'))
+                        break
+
+        abats = abats.assign(homeaway = 'a', team_name = away_team_name)
+        hbats = hbats.assign(homeaway = 'h', team_name = home_team_name)
+        apits = apits.assign(homeaway = 'a', team_name = away_team_name)
+        hpits = hpits.assign(homeaway = 'h', team_name = home_team_name)
+
+        batting_df = pd.concat([abats, hbats])
+        pitching_df = pd.concat([apits, hpits])
+        batting_df.pCode = pd.to_numeric(batting_df.pCode)
+        pitching_df.pCode = pd.to_numeric(pitching_df.pCode)
+
+        return pitching_df, batting_df, relay_df
 
 
 def download_pbp_files(start_date, end_date, playoff=False,
