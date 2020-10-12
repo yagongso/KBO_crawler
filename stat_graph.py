@@ -489,7 +489,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
             _oavg = hit_sum/ab_sum if ab_sum > 0 else 0
             _oobp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
             _oslg = tb_sum/ab_sum if ab_sum > 0 else 0
-            _oops = _obp + _slg
+            _oops = _oobp + _oslg
             _obabip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
             _krate = so_sum / pa_sum if pa_sum > 0 else 0
             _bbrate = bb_sum / pa_sum if pa_sum > 0 else 0
@@ -518,7 +518,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
             _oavg = hit_sum/ab_sum if ab_sum > 0 else 0
             _oobp = (hit_sum+bb_sum+hbp_sum)/(ab_sum+bb_sum+hbp_sum+sf_sum) if (ab_sum+bb_sum+hbp_sum+sf_sum) > 0 else 0
             _oslg = tb_sum/ab_sum if ab_sum > 0 else 0
-            _oops = _obp + _slg
+            _oops = _oobp + _oslg
             _obabip = (hit_sum-hr_sum)/(ab_sum-so_sum-hr_sum+sf_sum) if (ab_sum-so_sum-hr_sum+sf_sum) > 0 else 0
             _krate = so_sum / pa_sum if pa_sum > 0 else 0
             _bbrate = bb_sum / pa_sum if pa_sum > 0 else 0

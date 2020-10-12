@@ -27,6 +27,7 @@ Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 �
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
 BallColors = {'직구': '#f03e3e',
+              '포심': '#f03e3e',
               '투심': '#e26d14',
               '싱커': '#f2bb07',
               '슬라이더': '#acfc16',
@@ -701,7 +702,7 @@ def plot_match_calls(df, title=None):
     plt.show()
 
 
-def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None):
+def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None, color=None):
     set_fonts()
     if df.px.isnull().any():
         df = clean_data(df)
@@ -742,7 +743,16 @@ def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None):
     plt.rcParams['axes.unicode_minus'] = False
 
     if cmap is None:
-        cmap='Reds'
+        if color is not None:
+            c = hex_to_rgb(color)
+            h, s, v = colorsys.rgb_to_hsv(c[0], c[1], c[2])
+            colors = []
+            for i in range(10):
+                r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
+                colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
+            cmap = LinearSegmentedColormap.from_list('mycmap', colors)
+        else:
+            cmap='Reds'
 
     sns.kdeplot(df.px, df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
                 cbar=True, cmap=cmap, cbar_kws={'format': ticker.FuncFormatter(fmt)},
@@ -786,24 +796,40 @@ def hex_to_rgb(hex):
     return tuple(int(hex[i:i+int(hlen/3)], 16) for i in range(0, hlen, int(hlen/3)))
 
 
-def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None):
+def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, color=None, by_inch=True):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    lb = -1.5
-    rb = +1.5
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
+    if by_inch is True:
+        df = df.assign(px = df.px * 12, pz = df.pz * 12)
+        lb = -18
+        rb = +18
+        ll = -17/2
+        rl = +17/2
+        oll = -10
+        orl = +10
 
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = (bl+tl)/2 - (tl-bl)*15/16
-    tb = (bl+tl)/2 + (tl-bl)*15/16
+        bl = 18
+        tl = 42
+        obl = bl-3/2
+        otl = tl+3/2
+        bb = (bl+tl)/2 - (tl-bl)*15/16
+        tb = (bl+tl)/2 + (tl-bl)*15/16
+    else:
+        lb = -1.5
+        rb = +1.5
+        ll = -17/24
+        rl = +17/24
+        oll = -20/24
+        orl = +20/24
+
+        bl = 1.59
+        tl = 3.44
+        obl = bl-3/24
+        otl = tl+3/24
+        bb = (bl+tl)/2 - (tl-bl)*15/16
+        tb = (bl+tl)/2 + (tl-bl)*15/16
 
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -828,18 +854,16 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     ax.cla()
 
     if cmap is None:
-        cmap='Reds'
-    else:
         if color is not None:
             c = hex_to_rgb(color)
+            h, s, v = colorsys.rgb_to_hsv(c[0], c[1], c[2])
+            colors = []
+            for i in range(5, 11):
+                r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
+                colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
+            cmap = LinearSegmentedColormap.from_list('mycmap', colors)
         else:
-            c = (255, 0, 0)
-        h, s, v = colorsys.rgb_to_hsv(c[0], c[1], c[2])
-        colors = []
-        for i in range(5, 11):
-            r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
-            colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
-        cmap = LinearSegmentedColormap.from_list('mycmap', colors)
+            cmap='Reds'
 
     if show_full is True:
         levels = np.asarray([0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
@@ -863,14 +887,22 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
 
-    major_xtick_step = major_ytick_step = 1/2
-    minor_xtick_step = minor_ytick_step = 1/12
+    if by_inch is True:
+        major_xtick_step = major_ytick_step = 6
+        minor_xtick_step = minor_ytick_step = 1
+    else:
+        major_xtick_step = major_ytick_step = 1/2
+        minor_xtick_step = minor_ytick_step = 1/12
 
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
 
-    major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
-    minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
+    if by_inch is True:
+        major_yticks = np.arange(0, 60+major_ytick_step, major_ytick_step)
+        minor_yticks = np.arange(0, 60+minor_ytick_step, minor_ytick_step)
+    else:
+        major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
+        minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
 
     ax.set_xticks(major_xticks)
     ax.set_xticks(minor_xticks, minor=True)
@@ -904,24 +936,40 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     return fig, ax
 
 
-def plot_szone(df, title=None, dpi=144, show_area=False, ax=None):
+def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
     set_fonts()
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    lb = -1.5
-    rb = +1.5
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
+    if by_inch is True:
+        df = df.assign(px = df.px * 12, pz = df.pz * 12)
+        lb = -18
+        rb = +18
+        ll = -17/2
+        rl = +17/2
+        oll = -10
+        orl = +10
 
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = 1.0
-    tb = 4.0
+        bl = 18
+        tl = 42
+        obl = bl-3/2
+        otl = tl+3/2
+        bb = 12
+        tb = 48
+    else:
+        lb = -1.5
+        rb = +1.5
+        ll = -17/24
+        rl = +17/24
+        oll = -20/24
+        orl = +20/24
+
+        bl = 1.59
+        tl = 3.44
+        obl = bl-3/24
+        otl = tl+3/24
+        bb = 1.0
+        tb = 4.0
 
     strikes = df.loc[df.pitch_result == '스트라이크']
     balls = df.loc[df.pitch_result == '볼']
@@ -953,8 +1001,8 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None):
     major_xticks = np.linspace(lb, rb, 7)
     minor_xticks = np.linspace(lb, rb, 37)
 
-    major_yticks = np.linspace(1, 4, 7)
-    minor_yticks = np.linspace(1, 4, 37)
+    major_yticks = np.linspace(bb, tb, 7)
+    minor_yticks = np.linspace(bb, tb, 37)
 
     ax.set_xticks(major_xticks)
     ax.set_xticks(minor_xticks, minor=True)
@@ -1386,9 +1434,9 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                 if s == 0:
                     continue
 
-                width = t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)
-                height = t.pfx_z.quantile(.5+span/2) - t.pfx_z.quantile(.5-span/2)
-                c1, c2 = t.pfx_x.median(), t.pfx_z.median()
+                width = (t.pfx_x.quantile(.5+span/2) - t.pfx_x.quantile(.5-span/2)) * 2.54
+                height = (t.pfx_z_raw.quantile(.5+span/2) - t.pfx_z_raw.quantile(.5-span/2)) * 2.54
+                c1, c2 = t.pfx_x.median() * 2.54, -t.pfx_z_raw.median() * 2.54
                 color = BallColors[p]
 
                 ellipse1 = Ellipse((c1, c2), width, height,
@@ -1398,17 +1446,19 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                                    ec=color, fc='#f0f0f0', lw=1,
                                    alpha=.5, zorder=1)
                 if show_dots:
-                    ax.scatter(t.pfx_x, t.pfx_z, alpha=0.25, c=color, s=dpi*.5, zorder=2)
+                    ax.scatter(t.pfx_x * 2.54, -t.pfx_z_raw * 2.54, alpha=0.25, c=color, s=dpi*.5, zorder=2)
 
                 ax.add_patch(ellipse1)
                 ax.add_patch(ellipse2)
 
                 ax.scatter(c1, c2, alpha=alpha2, s=dpi*.5, zorder=2, c=color)
-                dots_by_type.append(ax.scatter(-100, -100,
+                dots_by_type.append(ax.scatter(-1000, -1000,
                                                s=dpi*2, zorder=-1, c=color))
 
-                labels.append(p)
-
+                if p == '직구':
+                    labels.append('포심')
+                else:
+                    labels.append(p)
             ax.set_title(f'{player} Yearly Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
@@ -1420,13 +1470,16 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                     t_part = t.loc[t.month == m]
                     if t_part.shape[0] == 0:
                         continue
-                    x = t_part.pfx_x.mean()
-                    y = t_part.pfx_z.mean()
+                    x = t_part.pfx_x.mean() * 2.54
+                    y = -t_part.pfx_z_raw.mean() * 2.54
                     s = t_part.shape[0]
 
                     if color_added[p] is False:
                         dots_by_type.append(ax.scatter(x, y, s=dpi*2, c=BallColors[p]))
-                        labels.append(p)
+                        if p == '직구':
+                            labels.append('포심')
+                        else:
+                            labels.append(p)
                         color_added[p] = True
                     else:
                         ax.scatter(x, y, s=dpi*2, c=BallColors[p])
@@ -1434,8 +1487,13 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                 plt.gca().set_prop_cycle(None)
             ax.set_title(f'{player} Monthly Break Plot')
 
-        ax.set_xlim(-14,14)
-        ax.set_ylim(-18,18)
+        ax.text(-43, 180, '◀가라앉음', rotation=90, weight='bold')
+
+        ax.text(-35, 180, '◀우타석', weight='bold')
+        ax.text(25, 180, '좌타석▶', weight='bold')
+        ax.set_xlim(-14 * 2.54, 14 * 2.54)
+        ax.set_ylim(0, 180)
+        ax.invert_yaxis()
 
         ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small')
 
@@ -1448,12 +1506,13 @@ def pitchtype_plot(df, pitcher, ax=None):
     if target.shape[0] == 0:
         return
     else:
+        target = target.assign(pitch_type = target.pitch_type.apply(lambda x: '포심' if x=='직구' else x))
         g = target.groupby('pitch_type').size().sort_values(ascending=False) / len(target) * 100
         mean = target.groupby('pitch_type').speed.mean()
 
     dpi = 100
 
-    if (ax is None) or (len(ax) != 2):
+    if (ax is None) or (len(ax) < 2):
         _, ax = plt.subplots(1, 2, figsize=(10, 5), dpi=100)
     else:
         dpi = ax[0].figure.dpi

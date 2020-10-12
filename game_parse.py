@@ -73,13 +73,15 @@ def parse_batter_as_runner(text):
     result = 'h' if text.find('홈런') > 0 else result
     # 낫아웃 예외처리
     if result == 'o':
-        if text.find('낫아웃 폭투') >= 0:
+        if text.find('폭투') >= 0:
             result = 'a'
-        elif text.find('낫아웃 포일') >= 0:
+        elif text.find('포일') >= 0:
             result = 'a'
-        elif text.find('낫아웃 다른주자') >= 0:
+        elif text.find('다른주자') >= 0:
             result = 'a'
-        elif text.find('낫아웃 출루') >= 0:
+        elif text.find('출루') >= 0:
+            result = 'a'
+        elif text.find('실책') >= 0:
             result = 'a'
 
     before_base = 0
@@ -740,9 +742,9 @@ class game_status:
                         self.strikes += 1
                     elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
-                    if (self.strikes > 3) or (self.balls > 4) or (self.outs > 3):
+                    if (self.strikes > 3) or (self.balls > 4):
                         if debug_mode is True:
-                            self.log_text.append('3S/4B/3O')
+                            self.log_text.append('3S/4B')
                         assert False
                     self.ind = self.ind + 1
 
@@ -846,6 +848,10 @@ class game_status:
 
                     self.ind = cur_ind
                     self.handle_runner_stack(self.text_stack, debug_mode)
+                    if self.outs > 3:
+                        if debug_mode is True:
+                            self.log_text.append('Outs > 3')
+                        assert False
                 elif (cur_type == 14) or (cur_type == 24):
                     # 주자(비득점/득점)
                     self.text_stack = []
@@ -868,6 +874,10 @@ class game_status:
                     self.ind = cur_ind
 
                     self.handle_runner_stack(self.text_stack, debug_mode)
+                    if self.outs > 3:
+                        if debug_mode is True:
+                            self.log_text.append('Outs > 3')
+                        assert False
                 elif cur_type == 0:
                     # 이닝 시작
                     self.ind = self.ind + 1
