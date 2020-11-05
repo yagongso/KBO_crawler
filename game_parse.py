@@ -542,6 +542,8 @@ class game_status:
                     before_code = self.lineups[self.top_bot][order - 1].get('code')
 
                     # 대타 텍스트가 먼저 나오는 경우, 교체 선반영된 버그
+                    # 이미 라인업/batter name에 교체된 선수 이름 들어가 있음
+                    # 교체하는 대신, after_name이 현재 batter name과 같으면 continue한다
                     if (before_name != after_name) & (after_name == self.batter_name):
                         after_code = before_code
                         after_hittype = self.stands
@@ -561,12 +563,17 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('cant find player code in batter list')
+                            self.log_text.append(f'text - {text}')
                         assert False
                 elif after_pos == '투수':
                     # 예외처리
+                    # 기존 투수가 야수 자리에 들어가는 경우(지명타자 소멸)
+                    # ex) 지명타자 OOO : 투수 XXX(으)로 교체
                     if (after_name == self.pitcher_name) & (before_pos != '투수'):
                         after_code = self.pitcher_code
                         after_hittype = self.throws
+                    # 야수 자리에 새로 투수가 들어오는 경우(지명타자 소멸, 투수 교체)
+                    # ex) 1루수 OOO : 투수 XXX(으)로 교체
                     elif (after_name != self.pitcher_name) & (before_pos != '투수'):
                         if self.top_bot == 0:
                             for i in range(len(self.home_pitcher_list) - 1):
@@ -597,6 +604,7 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('cant find player code in pitcher list')
+                            self.log_text.append(f'text - {text}')
                         assert False
                     if ((self.DH_exist[self.top_bot] is False) or\
                         (self.DH_exist_after[self.top_bot] != self.DH_exist[self.top_bot])):
@@ -606,6 +614,7 @@ class game_status:
                                 order = i + 1
                                 break
                 elif before_pos.find('루주자') > 0:
+                    # 대주자 교체
                     before_base = int(before_pos[0])
                     for runner in self.runner_bases:
                         if (runner[0] == before_name) & (runner[2] == before_base):
@@ -630,8 +639,10 @@ class game_status:
                     if after_code is None:
                         if debug_mode is True:
                             self.log_text.append('cant find player code in batter list')
+                            self.log_text.append(f'text - {text}')
                         assert False
                 else:
+                    # 대타 교체
                     for i in range(9):
                         if (self.lineups[1 - self.top_bot][i].get('name') == before_name) &\
                            (self.lineups[1 - self.top_bot][i].get('pos') == before_pos):
@@ -645,6 +656,9 @@ class game_status:
                                 before_code = self.lineups[self.top_bot][i].get('code')
                                 order = i + 1
                                 break
+                    # 대타 교체가 이어지는 경우
+                    # 선입력된 change stack을 처리하고(lineup에 반영)
+                    # 다시 대타 text 처리를 시도함
                     if order is None:
                         try:
                             self.handle_change_stack(change_stack)
@@ -663,9 +677,30 @@ class game_status:
                                         before_code = self.lineups[self.top_bot][i].get('code')
                                         order = i + 1
                                         break
+                            # 대타 텍스트가 먼저 나오는 경우, 교체 선반영된 버그
+                            # 이미 라인업/batter name에 교체된 선수 이름 들어가 있음
+                            # 교체하는 대신, 현재 batter name과 같은 이름이 나오면 continue한다
+                            if order is None:
+                                already_change = False
+                                for i in range(9):
+                                    if (self.lineups[1 - self.top_bot][i].get('name') == after_name) &\
+                                       (self.batter_name == after_name):
+                                        already_change = True
+                                        break
+                                if already_change is True:
+                                    continue
+                                else:
+                                    for i in range(9):
+                                        if (self.lineups[self.top_bot][i].get('name') == after_name) &\
+                                           (self.batter_name == after_name):
+                                            already_change = True
+                                            break
+                                    if already_change is True:
+                                        continue
                             if before_code is None:
                                 if debug_mode is True:
                                     self.log_text.append('cant find player name/position in lineup')
+                                    self.log_text.append(f'text - {text}')
                                 assert False
                         except:
                             assert False
@@ -765,7 +800,9 @@ class game_status:
                         self.balls, self.strikes = 0, 0
 
                         # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
-                        # 임시조치에 불과함~
+                        # '대타 OOO' 텍스트가 들어왔는데, batter_name과 다름
+                        # 교체된 것으로 간주, batter_name과 lineups의 이름과 code 등을 바꾼다
+                        # 임시조치
                         if self.batter_name != self.cur_text.split(' ')[1]:
                             self.batter_name = self.cur_text.split(' ')[1]
                             self.lineups[self.top_bot][self.cur_order - 1]['name'] = self.batter_name
@@ -789,10 +826,14 @@ class game_status:
                     else:
                         self.batter_name, self.batter_code,\
                         _pos, self.stands = self.lineups[self.top_bot][self.cur_order - 1].values()
+                        # 버그 : 대타 교체 텍스트가 누락된 경우. 20170902HTWO02017
+                        # '대타 OOO' 텍스트가 들어왔는데, batter_name과 다름
+                        # 교체된 것으로 간주, batter_name과 lineups의 이름과 code 등을 바꾼다
+                        # 임시조치
                         if self.batter_name != self.cur_text.split(' ')[1]:
                             if len(self.cur_text.strip().split(' ')) > 1:
                                 self.batter_name = self.cur_text.strip().split(' ')[1]
-                                self.lineups[self.top_bot][self.cur_order - 1]['name'] =self. batter_name
+                                self.lineups[self.top_bot][self.cur_order - 1]['name'] =self.batter_name
                                 if self.top_bot == 0:
                                     for p in self.away_batter_list:
                                         if (p[0] == self.batter_name) & (p[4] == self.cur_order):
@@ -816,6 +857,8 @@ class game_status:
                     self.ind = self.ind + 1
                 elif (cur_type == 13) or (cur_type == 23):
                     # 타자주자(비득점/득점)
+                    # 주자 처리 텍스트 row를 쭉 text_stack에 쌓는다
+                    # 쌓은 row를 한번에 처리(handle_runner_stack)
                     self.text_stack = []
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
@@ -837,6 +880,8 @@ class game_status:
                     self.pa_result = result[0]
                     self.pa_result_detail = result[1]
 
+                    # 타격 결과가 '타격'인 경우에는 새 row를 추가, 여기에 description등을 넣음
+                    # 아닌 경우에는 직전에 print_rows에 추가된 row(tail)에 description, pa_result 등을 추가
                     if self.pitch_result != '타격':
                         self.print_rows[-1]['description'] = self.description
                         self.print_rows[-1]['pa_result'] = self.pa_result
@@ -854,6 +899,8 @@ class game_status:
                         assert False
                 elif (cur_type == 14) or (cur_type == 24):
                     # 주자(비득점/득점)
+                    # 주자 처리 텍스트 row를 쭉 text_stack에 쌓는다
+                    # 쌓은 row를 한번에 처리(handle_runner_stack)
                     self.text_stack = []
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
@@ -897,7 +944,9 @@ class game_status:
 
                     self.pitch_number = 0
                 elif cur_type == 2:
-                     # 교체/변경
+                    # 교체/변경
+                    # 교체/변경 텍스트 row를 쭉 text_stack에 쌓는다
+                    # 쌓은 row를 한번에 처리(handle_change_stack)
                     self.text_stack = []
                     cur_ind = self.ind
                     self.cur_row = self.relay_array[cur_ind]
