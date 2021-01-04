@@ -881,8 +881,9 @@ class game_status:
                     self.pa_result_detail = result[1]
 
                     # 타격 결과가 '타격'인 경우에는 새 row를 추가, 여기에 description등을 넣음
+                    # 자동 고의4구 경우도 새 row를 추가
                     # 아닌 경우에는 직전에 print_rows에 추가된 row(tail)에 description, pa_result 등을 추가
-                    if self.pitch_result != '타격':
+                    if (self.pitch_result != '타격') & (self.pa_result != '자동 고의4구'):
                         self.print_rows[-1]['description'] = self.description
                         self.print_rows[-1]['pa_result'] = self.pa_result
                         self.print_rows[-1]['pa_result_detail'] = self.pa_result_detail
