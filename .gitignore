@@ -15,3 +15,4 @@ venv/
 *.spec
 *.pyc
 *.txt
+*.xlsx

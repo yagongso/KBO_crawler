@@ -187,7 +187,7 @@ def get_rv_event(df):
     runs_after_play_avg_by_event = (runs_after_play_sum_by_event / event_count).fillna(0)
 
     rv = runs_after_play_avg_by_event.runs_scored_after_play - event_re_avg_by_base_out
-    
+
     rvdf = pd.DataFrame(rv)
     rvdf = rvdf.rename_axis('event')
     rvdf = rvdf.rename(index=str, columns={0:'Run Value'})
@@ -195,18 +195,28 @@ def get_rv_event(df):
     return rvdf
 
 
-def get_rv_event_simple(df):
+def get_rv_event_simple(df, more_simple=False):
     columns_needed = ['game_date', 'away', 'home', 'inning', 'inning_topbot',
                       'outs', 'score_home', 'score_away', 'pitch_result', 'pa_result',
                       'on_1b', 'on_2b', 'on_3b']
-    single = ['내야안타', '내야 안타', '1루타', '번트 안타', '번트안타']
+    single = ['내야안타', '내야 안타', '1루타', '번트 안타', '번트안타', '안타']
     fieldout = ['필드 아웃', '필드아웃', '타구맞음 아웃', '타구 맞음 아웃', '타구맞음아웃']
     outs = ['필드 아웃', '필드아웃', '타구맞음 아웃', '포스 아웃', '포스아웃']
+
+    if more_simple == True:
+        outs.append('병살타')
 
     events_short = ['안타', '내야안타', '내야 안타', '번트안타', '번트 안타', '1루타', '2루타', '3루타', '홈런',
                     '병살타', '자동 고의4구', '고의4구', '고의 4구', '자동 고의 4구',
                     '볼넷', '삼진', '포스 아웃', '필드 아웃', '타구맞음 아웃', '타구 맞음 아웃',
                     '희생플라이', '희생번트', '희생 플라이', '희생 번트']
+
+    if more_simple == True:
+        events_short.append('실책')
+        events_short.append('야수 선택')
+        events_short.append('몸에 맞는 공')
+        events_short.append('몸에 맞는 볼')
+
     t = df.loc[df.outs < 3][columns_needed]
 
     # 자동고의4구, 고의4구 하나로 합친다
@@ -214,7 +224,7 @@ def get_rv_event_simple(df):
                                       '고의4구', t.pa_result))
     t = t.assign(pa_result = np.where(t.pa_result == '자동 고의 4구',
                                       '고의4구', t.pa_result))
-    
+
     # 단타 종류는 모두 1루타로 축약, 필드아웃 종류는 필드 아웃으로 축약
     t = t.assign(pa_result2 = np.where(t.pa_result.isin(single), '1루타',
                                        np.where(t.pa_result.isin(fieldout),
@@ -223,6 +233,11 @@ def get_rv_event_simple(df):
     # 필드아웃 포스아웃은 모두 그냥 아웃으로 축약
     t = t.assign(pa_result2 = np.where(t.pa_result2.isin(outs),
                                        '아웃', t.pa_result2))
+
+    # 희생플라이, 희생번트 -> 희생타로 축약
+    if more_simple == True:
+        t = t.assign(pa_result2 = np.where(t.pa_result2.isin(['희생플라이', '희생번트', '희생 번트', '희생 플라이']),
+                                           '희생타', t.pa_result2))
 
     # 플레이 단위 별로 홈/어웨이 점수 차이
     t = t.assign(play_run_home = t.score_home.shift(-1) - t.score_home,
@@ -293,9 +308,9 @@ def get_rv_event_simple(df):
 
     # RE24 table
     re24 = base_out_run_sum / base_out_counts
-    
+
     base_out_re = re24.sort_index(axis=1, ascending=False).values.reshape(-1,1)
-    
+
     ##############################################
     # BASE-OUT 조합에 따른 각 타격 이벤트의 개수 #
     ##############################################
@@ -313,7 +328,7 @@ def get_rv_event_simple(df):
     # BASE-OUT 조합에 따른 각 타석 이벤트의 RE AVG #
     ################################################
     event_re_avg_by_base_out = event_re_sum_by_base_out.sum(axis=0) / event_count_by_base_out.sum(axis=0)
-    
+
     ###########################################################
     # 플레이(타석 이벤트) 이후 해당 이닝에 발생한 점수의 평균 #
     ###########################################################
@@ -332,7 +347,7 @@ def get_rv_event_simple(df):
     return rvdf
 
 
-def get_rv_of_ball_strike(df):
+def get_rv_of_ball_strike(df, more=False):
     """
     볼과 스트라이크의 평균 득점 가치(run value)를 구한다.
     공격(타자) 측 입장에서 계산한 것이므로 플러스가 공격 측 이득이다.
@@ -348,7 +363,7 @@ def get_rv_of_ball_strike(df):
     전자는 볼 1개의 득점 가치, 후자는 스트라이크 1개의 득점 가치.
     """
     columns_needed = ['game_date', 'away', 'home', 'inning', 'inning_topbot',
-                      'pa_number', 'pa_result', 'pitch_result']
+                      'pa_number', 'pa_result', 'pitch_result', 'strikes']
     t = df.loc[df.outs < 3][columns_needed]
     t = t.assign(pa_code = t.game_date.map(str)+
                            t.away.map(str)+
@@ -358,10 +373,10 @@ def get_rv_of_ball_strike(df):
     pa_fin_res = t.loc[(t.pa_result != 'None') &
                        (~t.pa_result.isnull()) &
                        (t.pa_result != '투구 외 득점')][['pa_code', 'pa_result']]
-    
+
     t_join = t.set_index('pa_code').join(pa_fin_res.set_index('pa_code'), how='outer', rsuffix='_callee')
     t_join = t_join.drop(t_join.loc[t_join.pa_result_callee.isnull()].index)
-    
+
     rv = get_rv_event(df)
     dict_rv = dict(rv['Run Value'])
 
@@ -393,7 +408,35 @@ def get_rv_of_ball_strike(df):
                                          aggfunc='count',
                                          fill_value=0).sum(axis=1)
 
-    return (event_rv_sum_when_ball / event_count_ball)[0], (event_rv_sum_when_strike / event_count_strike)[0]
+    if more == True:
+        fouls = t_join.loc[t_join.pitch_result == '파울']
+        whiffs = t_join.loc[(t_join.pitch_result == '헛스윙') & (t_join.strikes < 2)]
+        # event(when strike) rv sum
+        event_rv_sum_when_foul = fouls.pivot_table('rv',
+                                                   columns=['pa_result_callee'],
+                                                   aggfunc='sum',
+                                                   fill_value=0).sum(axis=1)
+        # event(when whiff) rv sum
+        event_rv_sum_when_whiff = whiffs.pivot_table('rv',
+                                                     columns=['pa_result_callee'],
+                                                     aggfunc='sum',
+                                                     fill_value=0).sum(axis=1)
+        # event count(when foul)
+        event_count_foul = fouls.pivot_table('rv',
+                                             columns=['pa_result_callee'],
+                                             aggfunc='count',
+                                             fill_value=0).sum(axis=1)
+        # event count(when whiff)
+        event_count_whiff = whiffs.pivot_table('rv',
+                                               columns=['pa_result_callee'],
+                                               aggfunc='count',
+                                               fill_value=0).sum(axis=1)
+        return (event_rv_sum_when_ball / event_count_ball)[0],\
+               (event_rv_sum_when_strike / event_count_strike)[0],\
+               (event_rv_sum_when_foul / event_count_foul)[0],\
+               (event_rv_sum_when_whiff / event_count_whiff)[0]
+    else:
+        return (event_rv_sum_when_ball / event_count_ball)[0], (event_rv_sum_when_strike / event_count_strike)[0]
 
 
 def get_rv_of_ball_strike_by_count(df):
@@ -511,7 +554,7 @@ def calc_framing_cell(df, rv_by_count=False):
     logs = logs.drop(columns='x_ind')
     logs = logs.drop(columns='y_ind')
     logs = logs.assign(prediction = np.where(logs.proba >=0.5, 1, 0))
-    
+
     # Run Value
     rv = None
     if rv_by_count is False:
@@ -733,7 +776,7 @@ def get_framing_venue_adjustment(df):
         ep_row.append([team, es_adj-es_out, eb_adj-eb_out])
 
     ep_row.sort(key=lambda x:x[0])
-    
+
     return {x[0]: x[1] for x in ep_row}, {x[0]:x[2] for x in ep_row}
 
 
@@ -760,7 +803,7 @@ def get_framing_pitcher_adjustment(df):
         ep_row.append([pit, adj_es-woes, adj_eb-woeb])
 
     ep_row.sort(key=lambda x:x[0])
-    
+
     return {x[0]: x[1] for x in ep_row}, {x[0]:x[2] for x in ep_row}
 
 

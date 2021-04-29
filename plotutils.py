@@ -26,19 +26,25 @@ Results = Enum('Results', '볼 스트라이크 헛스윙 파울 타격 번트파
 Stuffs = Enum('Stuffs', '직구 슬라이더 포크 체인지업 커브 투심 싱커 커터 너클볼')
 Colors = {'볼': '#3245ef', '스트라이크': '#ef2926', '헛스윙':'#1a1b1c', '파울':'#edf72c', '타격':'#8348d1', '번트파울':'#edf72c', '번트헛스윙':'#1a1b1c' }
 
-BallColors = {'직구': '#f03e3e',
-              '포심': '#f03e3e',
-              '투심': '#e26d14',
-              '싱커': '#f2bb07',
-              '슬라이더': '#acfc16',
-              '커터': '#187c29',
-              '커브': '#ff99cc',
-              '체인지업': '#0cd8fc',
-              '포크': '#0b62ed',
-              '너클볼': '#aa6fa2'}
+BallColors = {
+    '직구': 'red',
+    '포심': 'red',
+    '투심': 'sandybrown',
+    '싱커': 'gold',
+    '슬라이더': 'green',
+    '커터': 'teal',
+    '커브': 'violet',
+    '체인지업': 'deepskyblue',
+    '포크': 'royalblue',
+    '너클볼': 'blueviolet'
+}
 
 def fmt(x, pos):
     return r'{}%'.format(int(x*100))
+
+
+def fmt_cnt(x, pos, cnt):
+    return r'{}'.format(int(x*cnt))
 
 
 def set_fonts(name=None):
@@ -54,32 +60,13 @@ def set_fonts(name=None):
                 rc('font', family='NanumSquareRound')
         else:
             rc('font', family='NanumSquareRound')
-        
+
 
 def clean_debug(df):
     return df[['pitcher', 'batter', 'inning', 'inning_topbot', 'outs', 'balls', 'strikes',
                'pitch_result', 'pa_result', 'pitch_type', 'pa_number', 'pitch_number',
                'score_away', 'score_home',
                'on_1b', 'on_2b', 'on_3b']]
-
-
-def read_light(fname):
-    import warnings
-    warnings.filterwarnings("ignore")
-    # 포지션 데이터, 선수 ID 빼고 read
-
-    df = pd.read_csv(fname,
-                     usecols=['pitch_type', 'pitcher', 'batter', 'speed', 'pitch_result', 'pa_result',
-                             'balls', 'strikes', 'outs', 'inning', 'inning_topbot',
-                             'score_away', 'score_home', 'stands', 'throws',
-                             'on_1b', 'on_2b', 'on_3b', 'px', 'pz', 'pfx_x', 'pfx_z',
-                             'x0', 'z0', 'sz_top', 'sz_bot', 'game_date', 'home', 'away',
-                             'stadium', 'referee', 'pos_2']
-                       )
-    df = clean_data(df)
-
-    warnings.filterwarnings("default")
-    return df
 
 
 def clean_data(df):
@@ -99,12 +86,14 @@ def clean_data(df):
     if ('z0' in df.keys()) is True:
         df = df.assign(z0 = pd.to_numeric(df.z0, errors='coerce'))
 
-    df = df.drop(df.loc[df.px.isnull()].index)
-    df = df.drop(df.loc[df.pz.isnull()].index)
-    df = df.drop(df.loc[df.pitch_type.isnull()].index)
-    df = df.drop(df.loc[(df.pitch_type == 'None') & (~df.pitch_type.isnull())].index)
-    df = df.drop(df.loc[df.sz_bot.isnull()].index)
-    df = df.drop(df.loc[df.sz_top.isnull()].index)
+    df = df[df[df.px.isnull()].index]
+    df = df[df.loc[df.px.isnull()].index]
+    df = df[df.loc[df.pz.isnull()].index]
+    df = df[df.loc[df.pitch_type.isnull()].index]
+    df = df[df[(df.pitch_type == 'None')
+    df = df[df.loc[(df.pitch_type == 'None') & (~df.pitch_type.isnull())].index]
+    df = df[df.loc[df.sz_bot.isnull()].index]
+    df = df[df.loc[df.sz_top.isnull()].index]
 
     return df
 
@@ -121,10 +110,6 @@ def preprocess_data(df):
     df.stadium = pd.Categorical(df.stadium)
     df = df.assign(venue=df.stadium.cat.codes)
     return df
-
-
-def plot_strike_calls(df, title=None, show_pitch_number=False):
-    return plot_by_call(df, title, calls=['스트라이크', '볼'], legends=True, show_pitch_number=show_pitch_number)
 
 
 def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
@@ -202,96 +187,6 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     return fig, ax
 
 
-def plot_by_call_by_stands(df,
-    title=None,
-    calls=None,
-    legends=True,
-    show_pitch_number=False,
-    dpi=80,
-    ax=None):
-    set_fonts()
-    if df.px.isnull().any():
-        df = clean_data(df)
-
-    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
-    lb = -1.5 # leftBorder
-    rb = +1.5  # rightBorder
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
-
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
-    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
-
-    ldf = df.loc[df.stands == '좌']
-    rdf = df.loc[df.stands == '우']
-    dfs = [ldf, rdf]
-
-    if ax is None:
-        fig, ax = plt.subplots(1, 2, figsize=(10,5), dpi=dpi, facecolor='#898f99')
-    else:
-        fig = None
-
-    if calls is None:
-        calls_ = df.pitch_result.drop_duplicates()
-    elif type(calls) is list:
-        calls_ = calls
-    elif type(calls) is str:
-        calls_ = calls
-    else:
-        print()
-        print( 'ERROR: call option must be either string or list' )
-        exit(1)
-
-    for c in calls_:
-        for j in range(2):
-            df = dfs[j]
-            f = df.loc[df.pitch_result == c]
-            ax[j].scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)
-
-            if show_pitch_number is True:
-                for i in f.index:
-                    if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                        ax[j].text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                   color='white', fontsize='medium', weight='bold', horizontalalignment='center')
-
-            ax[j].plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
-            ax[j].plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
-
-            ax[j].plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
-            ax[j].plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
-
-            ax[j].plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
-
-            ax[j].plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
-            ax[j].axis( [lb, rb, bb, tb] )
-
-            ax[j].axis('off')
-            ax[j].autoscale_view('tight')
-
-    if title is not None:
-        fig.suptitle(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-
-    ax[0].set_title('vs L', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-    ax[1].set_title('vs R', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-
-    if legends is True:
-        ax[0].legend(loc='lower center', ncol=2, fontsize='medium')
-        ax[1].legend(loc='lower center', ncol=2, fontsize='medium')
-
-    return fig, ax
-
 def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitch_number=False, dpi=80, ax=None):
     set_fonts()
     if df.px.isnull().any():
@@ -368,341 +263,8 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     return fig, ax
 
 
-def plot_by_pitch_type_by_stands(df,
-    title=None,
-    pitch_types=None,
-    legends=True,
-    show_pitch_number=False,
-    dpi=80,
-    ax=None):
-    set_fonts()
-    if df.px.isnull().any():
-        df = clean_data(df)
-
-    # 단위: 피트; 좌우폭=17인치=17/24피트, 공1개 지름=약 3인치=1/4피트; 공반개=1/8피트
-    lb = -1.5 # leftBorder
-    rb = +1.5  # rightBorder
-    ll = -17/24
-    rl = +17/24
-    oll = -20/24
-    orl = +20/24
-
-    bl = 1.59
-    tl = 3.44
-    obl = bl-3/24
-    otl = tl+3/24
-    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
-    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
-
-    ldf = df.loc[df.stands == '좌']
-    rdf = df.loc[df.stands == '우']
-    dfs = [ldf, rdf]
-
-    if ax is None:
-        fig, ax = plt.subplots(1, 2, figsize=(10,5), dpi=dpi, facecolor='#898f99')
-    else:
-        fig = None
-
-    if pitch_types is None:
-        pitch_types_ = df.pitch_type.drop_duplicates()
-    elif type(pitch_types) is list:
-        pitch_types_ = pitch_types
-    elif type(pitch_types) is str:
-        pitch_types_ = pitch_types
-    else:
-        print()
-        print( 'ERROR: call option must be either string or list' )
-        exit(1)
-
-    for p in pitch_types_:
-        for j in range(2):
-            df = dfs[j]
-            f = df.loc[df.pitch_type == p]
-            c = BallColors[p]
-            ax[j].scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)
-
-            if show_pitch_number is True:
-                for i in f.index:
-                    if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                        ax[j].text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
-                                   color='white', fontsize='medium', weight='bold', horizontalalignment='center')
-
-            ax[j].plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [rl, rl], [bl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
-            ax[j].plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='white', linestyle= 'solid', lw=.5 )
-
-            ax[j].plot( [ll, rl], [bl, bl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll, rl], [tl, tl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='white', linestyle= 'solid', lw=.5 )
-            ax[j].plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='white', linestyle= 'solid', lw=.5 )
-
-            ax[j].plot( [oll, oll], [obl, otl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [orl, orl], [obl, otl], color='white', linestyle='solid', lw=1 )
-
-            ax[j].plot( [oll, orl], [obl, obl], color='white', linestyle='solid', lw=1 )
-            ax[j].plot( [oll, orl], [otl, otl], color='white', linestyle='solid', lw=1 )
-            ax[j].axis( [lb, rb, bb, tb] )
-
-            ax[j].axis('off')
-            ax[j].autoscale_view('tight')
-
-    if title is not None:
-        fig.suptitle(title, fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-
-    ax[0].set_title('vs L', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-    ax[1].set_title('vs R', fontsize='xx-large', color='white', weight='bold', horizontalalignment='center')
-
-    if legends is True:
-        ax[0].legend(loc='lower center', ncol=2, fontsize='medium')
-        ax[1].legend(loc='lower center', ncol=2, fontsize='medium')
-
-    return fig, ax
-
-
-# 경기 전체 call
-def plot_match_calls(df, title=None):
-    set_fonts()
-    if df.px.dtypes == np.object:
-        df = clean_data(df)
-
-    lb = -1.5  # leftBorder
-    rb = +1.5  # rightBorder
-    tb = +4.0  # topBorder
-    bb = +1.0  # bottomBorder
-
-    ll = -17/24  # leftLine
-    rl = +17/24  # rightLine
-    tl = +3.325  # topLine
-    bl = +1.579  # bototmLine
-
-    oll = -17/24-1/8  # outerLeftLine
-    orl = +17/24+1/8  # outerRightLine
-    otl = +3.325+1/8  # outerTopLine
-    obl = +1.579-1/8  # outerBottomLine
-
-    fig = plt.figure(figsize=(12,7), dpi=160, facecolor='#898f99')
-
-    if title is not None:
-        st = fig.suptitle(title, fontsize=20)
-        st.set_color('white')
-        st.set_weight('bold')
-        st.set_horizontalalignment('center')
-
-    # NaN, None 값들을 제거
-    sub_df = df
-    if df.px.isnull().any():
-        sub_df = df.drop(df.loc[df.px.isnull()].index)
-
-    strikes = sub_df.loc[sub_df.pitch_result == '스트라이크']
-    balls = sub_df.loc[sub_df.pitch_result == '볼']
-    whiffs = sub_df.loc[(sub_df.pitch_result == '헛스윙') | (sub_df.pitch_result == '번트헛스윙')]
-    fouls = sub_df.loc[(sub_df.pitch_result == '파울') | (sub_df.pitch_result == '번트파울')]
-    inplays = sub_df.loc[sub_df.pitch_result == '타격']
-
-    ############
-    # 1/6 : 스트라이크+볼
-    ############
-    ax = fig.add_subplot(231)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label='스트라이크')
-    plt.scatter(balls.px, balls.pz, color='#3245ef', alpha=.5, s=np.pi*50, label='볼')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.autoscale_view('tight')
-    ax.text(0, 3.8, '스트라이크+볼', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-
-    ############
-    # 2/6 : 스트라이크
-    ############
-    ax = fig.add_subplot(232)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(strikes.px, strikes.pz, color='#ef2926', alpha=.5, s=np.pi*50, label='스트라이크')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.autoscale_view('tight')
-    ax.text(0, 3.8, '스트라이크', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-
-    ############
-    # 3/6 : 볼
-    ############
-    ax = fig.add_subplot(233)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(balls.px, balls.pz, color='#3245ef', alpha=.5, s=np.pi*50, label='볼')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.text(0, 3.8, '볼', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-    ax.autoscale_view('tight')
-
-    ############
-    # 4/6 : 헛스윙
-    ############
-    ax = fig.add_subplot(234)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(whiffs.px, whiffs.pz, color='#1a1b1c', alpha=.5, s=np.pi*50, label='헛스윙')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.text(0, 3.8, '헛스윙', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-    ax.autoscale_view('tight')
-
-    ############
-    # 5/6 : 파울
-    ############
-    ax = fig.add_subplot(235)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(fouls.px, fouls.pz, color='#edf72c', alpha=.5, s=np.pi*50, label='파울')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.text(0, 3.8, '파울', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-    ax.autoscale_view('tight')
-
-    ############
-    # 6/6 : 인플레이(타격)
-    ############
-    ax = fig.add_subplot(236)
-    ax.tick_params(axis='x', colors='white')
-
-    plt.scatter(inplays.px, inplays.pz, color='#8348d1', alpha=.5, s=np.pi*50, label='인플레이')
-
-    plt.plot( [ll, ll], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [rl, rl], [bl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [ll, rl], [bl, bl], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color='#f9f9ff', linestyle= '-', lw=1 )
-    plt.plot( [ll, rl], [tl, tl], color='#f9f9ff', linestyle= '-', lw=1 )
-
-    plt.plot( [oll, oll], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [orl, orl], [obl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.plot( [oll, orl], [obl, obl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-    plt.plot( [oll, orl], [otl, otl], color='#d0cfd3', linestyle= '-', lw=0.5 )
-
-    plt.axis( [lb, rb, bb, tb] )
-
-    plt.rcParams['axes.unicode_minus'] = False
-    ax.set_yticklabels([])
-    ax.set_xticklabels([])
-    plt.axis('off')
-    ax.text(0, 3.8, '인플레이', color='white', fontsize=14, horizontalalignment='center', weight='bold')
-    ax.autoscale_view('tight')
-
-    plt.show()
-
-
-def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None, color=None):
+def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None,
+                       color=None, cbar=True, barpct=True, bw_adjust=1):
     set_fonts()
     if df.px.isnull().any():
         df = clean_data(df)
@@ -724,7 +286,7 @@ def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None, color=None):
     if ax is None:
         fig, ax = plt.subplots(figsize=(5,4), dpi=dpi, facecolor='white')
     else:
-        fig = None
+        fig = ax.figure
 
     major_xtick_step = major_ytick_step = 1/2
     minor_xtick_step = minor_ytick_step = 1/10
@@ -750,17 +312,27 @@ def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None, color=None):
             for i in range(10):
                 r, g, b = colorsys.hsv_to_rgb(h, s*i/10, v)
                 colors.append( '#%02x%02x%02x' % (int(r), int(g), int(b)) )
+
             cmap = LinearSegmentedColormap.from_list('mycmap', colors)
         else:
             cmap='Reds'
 
-    sns.kdeplot(df.px, df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
-                cbar=True, cmap=cmap, cbar_kws={'format': ticker.FuncFormatter(fmt)},
-                ax=ax, zorder=0)
+    if barpct == True:
+        sns.kdeplot(x=df.px, y=df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
+                    cbar=True, cmap=cmap, thresh=0.1, bw_adjust=bw_adjust,
+                    cbar_kws={'format': ticker.FuncFormatter(fmt)},
+                    ax=ax, zorder=1)
+    else:
+        sns.kdeplot(x=df.px, y=df.pz, shade=True, clip=((lb, rb), (bb, tb)), legend=False,
+                    cbar=True, cmap=cmap, thresh=0.1, bw_adjust=bw_adjust,
+                    ax=ax, zorder=1)
+        cb = fig.axes[-1]
+        cb.set_yticklabels(map(lambda t: int(float(t.get_text()) * len(df)),
+                           cb.get_yticklabels()))
 
-    sns.kdeplot(df.px, df.pz, clip=((lb, rb), (bb, tb)), legend=False,
-                cmap=cmap, linewidths=2.5,
-                ax=ax, zorder=1)
+    sns.kdeplot(x=df.px, y=df.pz, clip=((lb, rb), (bb, tb)), legend=False,
+                cmap=cmap, linewidths=2.5, thresh=0.1, bw_adjust=bw_adjust,
+                ax=ax, zorder=2)
 
     ax.plot( [ll, ll], [bl, tl], color='black', linestyle='dashed', lw=1 )
     ax.plot( [rl, rl], [bl, tl], color='black', linestyle='dashed', lw=1 )
@@ -781,6 +353,8 @@ def plot_contour_balls(df, title=None, dpi=100, cmap=None, ax=None, color=None):
     ax.set_yticks([])
     ax.set_xticks([], minor=True)
     ax.set_yticks([], minor=True)
+    ax.set_xlabel('')
+    ax.set_ylabel('')
 
     ax.autoscale_view('tight')
 
@@ -1249,7 +823,7 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
     sub_df = sub_df.assign(oz_miss=np.where(sub_df.pitch_result.isin(['번트헛스윙', '헛스윙'])
                                             & ozmask, 1, 0))
 
-    
+
     if isinstance(batter, str):
         if by_pitch is True:
             tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
@@ -1319,12 +893,6 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
     return tab[['swing_p', 'swstr_p', 'iz_swing_p', 'iz_con_p', 'oz_swing_p', 'oz_con_p']]
 
 
-RV = np.asarray([
-    0.087, 0.124, 0.177, 0.149,
-    0.104, 0.136, 0.210, 0.281,
-    0.248, 0.294, 0.402, 0.689
-])
-
 def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
     set_fonts()
     if 'proba' not in df.keys():
@@ -1363,7 +931,7 @@ def plot_by_proba(df, title=None, dpi=144, cmap=None, ax=None):
 
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
-    
+
     major_yticks = np.arange(0, 5+major_ytick_step, major_ytick_step)
     minor_yticks = np.arange(0, 5+minor_ytick_step, minor_ytick_step)
 
@@ -1459,7 +1027,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                     labels.append('포심')
                 else:
                     labels.append(p)
-            ax.set_title(f'{player} Yearly Break Plot')
+            ax.set_title(f'{player} Break Plot')
         else:
             color_added = {p: False for p in pitch_types}
             for m in target.month.drop_duplicates():
@@ -1483,7 +1051,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                         color_added[p] = True
                     else:
                         ax.scatter(x, y, s=dpi*2, c=BallColors[p])
-                    
+
                 plt.gca().set_prop_cycle(None)
             ax.set_title(f'{player} Monthly Break Plot')
 
@@ -1495,7 +1063,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
         ax.set_ylim(0, 180)
         ax.invert_yaxis()
 
-        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small')
+        ax.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small', bbox_to_anchor=(0.5, 0.025))
 
         return ax
 
@@ -1582,3 +1150,141 @@ def pitchtype_plot(df, pitcher, ax=None):
     ax[1].set_title(f'{pitcher} Speed')
 
     return ax
+
+
+def draw_zone_line(ax, color='black'):
+    lb = -1.5 # leftBorder
+    rb = +1.5  # rightBorder
+    ll = -17/24
+    rl = +17/24
+    oll = -20/24
+    orl = +20/24
+
+    bl = 1.59
+    tl = 3.44
+    obl = bl-3/24
+    otl = tl+3/24
+    bb = (bl+tl)/2 - (tl-bl)*15/16  # bottomBorder
+    tb = (bl+tl)/2 + (tl-bl)*15/16  # topBorder
+
+
+    ax.plot( [ll, ll], [bl, tl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [rl, rl], [bl, tl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [ll+(rl-ll)/3, ll+(rl-ll)/3], [bl, tl], color=color, linestyle= 'solid', lw=.5 )
+    ax.plot( [ll+(rl-ll)*2/3, ll+(rl-ll)*2/3], [bl, tl], color=color, linestyle= 'solid', lw=.5 )
+
+    ax.plot( [ll, rl], [bl, bl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [tl, tl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [ll, rl], [bl+(tl-bl)/3, bl+(tl-bl)/3], color=color, linestyle= 'solid', lw=.5 )
+    ax.plot( [ll, rl], [bl+(tl-bl)*2/3, bl+(tl-bl)*2/3], color=color, linestyle= 'solid', lw=.5 )
+
+    ax.plot( [oll, oll], [obl, otl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [orl, orl], [obl, otl], color=color, linestyle='solid', lw=1 )
+
+    ax.plot( [oll, orl], [obl, obl], color=color, linestyle='solid', lw=1 )
+    ax.plot( [oll, orl], [otl, otl], color=color, linestyle='solid', lw=1 )
+
+
+def pitchmix_breakdown(df, pitcher, ax=None, span=0.6):
+    plt.style.use('fivethirtyeight')
+    target = df.loc[df.pitcher == pitcher]
+    if target.shape[0] == 0:
+        return
+    else:
+        target = target.assign(pitch_type = target.pitch_type.apply(lambda x: '포심' if x=='직구' else x))
+        target = target[target.px.notnull()]
+
+    dpi = 72
+
+    if (ax is None) or (len(ax) < 2):
+        _, ax = plt.subplots(2, 4, figsize=(20, 10), dpi=72, facecolor='#898f99')
+    elif (len(ax[0]) < 4):
+        _, ax = plt.subplots(2, 4, figsize=(20, 10), dpi=72, facecolor='#898f99')
+    else:
+        dpi = ax[0, 0].figure.dpi
+
+    t_left = target[target.stands == '좌']
+    t_right = target[target.stands == '우']
+
+    t_left_p3 = t_left[t_left.pitch_number < 3]
+    t_left_p4 = t_left[t_left.pitch_number > 4]
+    t_left_2s = t_left[t_left.strikes == 2]
+
+    t_right_p3 = t_right[t_right.pitch_number < 3]
+    t_right_p4 = t_right[t_right.pitch_number > 4]
+    t_right_2s = t_right[t_right.strikes == 2]
+
+    for t, a in zip([t_left, t_left_p3, t_left_p4, t_left_2s,
+                     t_right, t_right_p3, t_right_p4, t_right_2s],
+                     ax.reshape(-1, )):
+
+        maxfreq = t.groupby('pitch_type').size().max() / len(t)
+        dots_by_type = []
+        labels = []
+
+        for p in BallColors.keys():
+            tp = t[t.pitch_type == p]
+            if len(tp) == 0:
+                continue
+
+            freq = len(tp) / len(t)
+
+            if freq < 0.05:
+                continue
+            alpha = freq / maxfreq * .8
+            alpha2 = min(1, freq*2+.25)
+
+            w = (tp.px.quantile(.5 + span/2) - tp.px.quantile(.5 - span/2))
+            h = (tp.pz.quantile(.5 + span/2) - tp.pz.quantile(.5 - span/2))
+            w2 = (tp.px.quantile(.5 + span/4) - tp.px.quantile(.5 - span/4))
+            h2 = (tp.pz.quantile(.5 + span/4) - tp.pz.quantile(.5 - span/4))
+            c1, c2 = tp.px.median(), tp.pz.median()
+            c3 = tp[tp.px.between(tp.px.quantile(.5 - span/4), tp.px.quantile(.5 + span/4))].px.mean()
+            c4 = tp[tp.pz.between(tp.pz.quantile(.5 - span/4), tp.pz.quantile(.5 + span/4))].pz.mean()
+
+            color = BallColors[p]
+
+            from matplotlib.patches import Ellipse
+            ellipse1 = Ellipse((c1, c2), w, h,
+                               ec=color, fc=color, lw=1,
+                               alpha=alpha, zorder=2)
+            ellipse2 = Ellipse((c1, c2), w, h,
+                               ec=color, fc='#f0f0f0', lw=1,
+                               alpha=.5, zorder=1)
+            ellipse3 = Ellipse((c3, c4), w2, h2,
+                               fc=color, lw=1,
+                               alpha=min(alpha+0.2, 1), zorder=3,
+                               hatch='//', edgecolor='black')
+            a.add_patch(ellipse1)
+            a.add_patch(ellipse2)
+            a.add_patch(ellipse3)
+            a.scatter(c1, c2, alpha=alpha2, s=dpi*.5, zorder=2, c=color, label=p)
+
+            dots_by_type.append(a.scatter(-1000, -1000,
+                                s=dpi*2, zorder=-1, c=color))
+
+            if p == '직구':
+                labels.append('포심')
+            else:
+                labels.append(p)
+        a.legend(tuple(dots_by_type), tuple(labels), ncol=3, loc='lower center', fontsize='small', bbox_to_anchor=(0.5, 0.025))
+
+    ax[0, 0].set_title('vs좌')
+    ax[0, 1].set_title('vs좌 P<3')
+    ax[0, 2].set_title('vs좌 P>4')
+    ax[0, 3].set_title('vs좌 2S')
+
+    ax[1, 0].set_title('vs우')
+    ax[1, 1].set_title('vs우 P<3')
+    ax[1, 2].set_title('vs우 P>4')
+    ax[1, 3].set_title('vs우 2S')
+
+    for a in ax.reshape(-1, ):
+        draw_zone_line(a)
+        a.set_facecolor('#898f99')
+        a.axis( [-1.25, 1.25, 0.50, 3.75] )
+        a.axis('off')
+        a.autoscale_view('tight')
+
+    plt.show()
+    plt.close()
