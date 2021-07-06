@@ -250,20 +250,20 @@ class game_status:
 
         for i in range(9):
             away_code = bats[0].loc[(bats[0].batOrder == i+1) &
-                                    (bats[0].seqno == abat_seqno_min[i])].pCode.values[0]
+                                    (bats[0].seqno == abat_seqno_min[i])].pcode.values[0]
             away_name = bats[0].loc[(bats[0].batOrder == i+1) &
                                     (bats[0].seqno == abat_seqno_min[i])].name.values[0]
             home_code = bats[1].loc[(bats[1].batOrder == i+1) &
-                                    (bats[1].seqno == hbat_seqno_min[i])].pCode.values[0]
+                                    (bats[1].seqno == hbat_seqno_min[i])].pcode.values[0]
             home_name = bats[1].loc[(bats[1].batOrder == i+1) &
                                     (bats[1].seqno == hbat_seqno_min[i])].name.values[0]
-            away_hittype = bats[0].loc[bats[0].pCode == away_code].hitType.values[0]
-            home_hittype = bats[1].loc[bats[1].pCode == home_code].hitType.values[0]
+            away_hittype = bats[0].loc[bats[0].pcode == away_code].hitType.values[0]
+            home_hittype = bats[1].loc[bats[1].pcode == home_code].hitType.values[0]
             away_player = {'name': away_name, 'code': away_code, 'hitType': away_hittype}
             home_player = {'name': home_name, 'code': home_code, 'hitType': home_hittype}
 
-            away_pos = bats[0].loc[bats[0].pCode == away_code].posName.values[0]
-            home_pos = bats[1].loc[bats[1].pCode == home_code].posName.values[0]
+            away_pos = bats[0].loc[bats[0].pcode == away_code].posName.values[0]
+            home_pos = bats[1].loc[bats[1].pcode == home_code].posName.values[0]
             self.fields[1][away_pos] = away_player
             self.fields[0][home_pos] = home_player
 
@@ -273,10 +273,10 @@ class game_status:
             self.lineups[1].append(home_lineup)
 
         away_pitcher = {'name': pits[0].iloc[0]['name'],
-                        'code': int(pits[0].iloc[0].pCode),
+                        'code': int(pits[0].iloc[0].pcode),
                         'hitType': pits[0].iloc[0].hitType}
         home_pitcher = {'name': pits[1].iloc[0]['name'],
-                        'code': int(pits[1].iloc[0].pCode),
+                        'code': int(pits[1].iloc[0].pcode),
                         'hitType': pits[1].iloc[0].hitType}
         self.fields[1]['투수'] = away_pitcher
         self.fields[0]['투수'] = home_pitcher
@@ -286,8 +286,8 @@ class game_status:
         home_pdf = pdf.loc[pdf.homeaway == 'h']
         away_pdf = pdf.loc[pdf.homeaway == 'a']
 
-        batter_list_cols = ['name', 'pCode', 'posName', 'hitType', 'batOrder', 'seqno']
-        pitcher_list_cols = ['name', 'pCode', 'hitType', 'seqno']
+        batter_list_cols = ['name', 'pcode', 'posName', 'hitType', 'batOrder', 'seqno']
+        pitcher_list_cols = ['name', 'pcode', 'hitType', 'seqno']
 
         self.home_batter_list = home_bdf[batter_list_cols].values.tolist()
         self.home_pitcher_list = home_pdf[pitcher_list_cols].values.tolist()
@@ -392,7 +392,7 @@ class game_status:
 
     def handle_runner_stack(self, runner_stack, debug_mode=False):
         if len(self.runner_bases) == 0:
-            if debug_mode is True:
+            if debug_mode == True:
                 self.log_text.append('base error')
             assert False
         cur_runner = self.runner_bases[0]
@@ -416,7 +416,7 @@ class game_status:
                 cur_runner = self.runner_bases[cur_runner_ind]
                 base_loop_num += 1
                 if base_loop_num > 4:
-                    if debug_mode is True:
+                    if debug_mode == True:
                         self.log_text.append('base error')
                     assert False
 
@@ -437,7 +437,7 @@ class game_status:
 
         for runner in self.runner_bases:
             # name, code, src, route
-            if (batter_runner is True) & (runner[2] == 0) & (runner[3][0] == 5):
+            if (batter_runner == True) & (runner[2] == 0) & (runner[3][0] == 5):
                 continue
             elif runner[3][0] == 5:
                 after_runner_bases.append(runner[:])
@@ -561,7 +561,7 @@ class game_status:
                                     after_hittype = self.home_batter_list[i+1][3]
                                     break
                     if after_code is None:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('cant find player code in batter list')
                             self.log_text.append(f'text - {text}')
                         assert False
@@ -602,7 +602,7 @@ class game_status:
                                     after_hittype = self.away_pitcher_list[i+1][2]
                                     break
                     if after_code is None:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('cant find player code in pitcher list')
                             self.log_text.append(f'text - {text}')
                         assert False
@@ -637,7 +637,7 @@ class game_status:
                                 after_hittype = self.home_batter_list[i+1][3]
                                 break
                     if after_code is None:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('cant find player code in batter list')
                             self.log_text.append(f'text - {text}')
                         assert False
@@ -687,7 +687,7 @@ class game_status:
                                        (self.batter_name == after_name):
                                         already_change = True
                                         break
-                                if already_change is True:
+                                if already_change == True:
                                     continue
                                 else:
                                     for i in range(9):
@@ -695,10 +695,10 @@ class game_status:
                                            (self.batter_name == after_name):
                                             already_change = True
                                             break
-                                    if already_change is True:
+                                    if already_change == True:
                                         continue
                             if before_code is None:
-                                if debug_mode is True:
+                                if debug_mode == True:
                                     self.log_text.append('cant find player name/position in lineup')
                                     self.log_text.append(f'text - {text}')
                                 assert False
@@ -729,7 +729,7 @@ class game_status:
                                     after_hittype = self.home_batter_list[i+1][3]
                                     break
                     if after_code is None:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('cant find player code in lineup')
                         assert False
                     for i in range(len(self.runner_bases)):
@@ -778,7 +778,7 @@ class game_status:
                     elif res.find('파울') > -1:
                         self.strikes = self.strikes+1 if self.strikes < 2 else 2
                     if (self.strikes > 3) or (self.balls > 4):
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('3S/4B')
                         assert False
                     self.ind = self.ind + 1
@@ -895,7 +895,7 @@ class game_status:
                     self.ind = cur_ind
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('Outs > 3')
                         assert False
                 elif (cur_type == 14) or (cur_type == 24):
@@ -923,14 +923,14 @@ class game_status:
 
                     self.handle_runner_stack(self.text_stack, debug_mode)
                     if self.outs > 3:
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('Outs > 3')
                         assert False
                 elif cur_type == 0:
                     # 이닝 시작
                     self.ind = self.ind + 1
                     if (len(self.print_rows) > 0) & (self.outs < 3):
-                        if debug_mode is True:
+                        if debug_mode == True:
                             self.log_text.append('outs < 3')
                         assert False
                     if self.top_bot == 1:
@@ -981,7 +981,7 @@ class game_status:
                     prlen -= 1
                 else:
                     break
-            if debug_mode is True:
+            if debug_mode == True:
                 self.log_text.append("-"*60)
                 self.log_text.append(f"=== gameID : {self.game_id}")
                 self.log_text.append("-"*60)

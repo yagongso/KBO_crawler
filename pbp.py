@@ -42,7 +42,7 @@ def join_csvs(path, start_date, end_date):
                 if len(lines) < 2:
                     fp.close()
                     continue
-                if header_written is False:
+                if header_written == False:
                     yfile.write(lines[0])
                     header_written = True
                 for line in lines[1:]:
@@ -173,12 +173,12 @@ if __name__ == '__main__':
         log = open('log.txt', 'a')
         log.write('====================================\n')
         log.write(getTracebackStr())
-        if args.debug_mode is True:
+        if args.debug_mode == True:
             print(getTracebackStr())
         log.close()
         exit(1)
 
-    if args.join_csv is True:
+    if args.join_csv == True:
         try:
             join_csvs(sp, start_date, end_date)
         except:

@@ -70,30 +70,25 @@ def clean_debug(df):
 
 
 def clean_data(df):
-    df = df.assign(speed = pd.to_numeric(df.speed, errors='coerce'))
-    df = df.assign(px = pd.to_numeric(df.px, errors='coerce'))
-    df = df.assign(pz = pd.to_numeric(df.pz, errors='coerce'))
-    df = df.assign(sz_top = pd.to_numeric(df.sz_top, errors='coerce'))
-    df = df.assign(sz_bot = pd.to_numeric(df.sz_bot, errors='coerce'))
-    df = df.assign(pfx_x = pd.to_numeric(df.pfx_x, errors='coerce'))
-    df = df.assign(pfx_z = pd.to_numeric(df.pfx_z, errors='coerce'))
-    if ('pfx_x_raw' in df.keys()) is True:
+    df = df.assign(speed = pd.to_numeric(df.speed, errors='coerce'),
+                   px = pd.to_numeric(df.px, errors='coerce'),
+                   pz = pd.to_numeric(df.pz, errors='coerce'),
+                   sz_top = pd.to_numeric(df.sz_top, errors='coerce'),
+                   sz_bot = pd.to_numeric(df.sz_bot, errors='coerce'),
+                   pfx_x = pd.to_numeric(df.pfx_x, errors='coerce'),
+                   pfx_z = pd.to_numeric(df.pfx_z, errors='coerce'))
+    if ('pfx_x_raw' in df.keys()) == True:
         df = df.assign(pfx_x_raw = pd.to_numeric(df.pfx_x_raw, errors='coerce'))
-    if ('pfx_z_raw' in df.keys()) is True:
+    if ('pfx_z_raw' in df.keys()) == True:
         df = df.assign(pfx_z_raw = pd.to_numeric(df.pfx_z_raw, errors='coerce'))
-    if ('x0' in df.keys()) is True:
+    if ('x0' in df.keys()) == True:
         df = df.assign(x0 = pd.to_numeric(df.x0, errors='coerce'))
-    if ('z0' in df.keys()) is True:
+    if ('z0' in df.keys()) == True:
         df = df.assign(z0 = pd.to_numeric(df.z0, errors='coerce'))
 
-    df = df[df[df.px.isnull()].index]
-    df = df[df.loc[df.px.isnull()].index]
-    df = df[df.loc[df.pz.isnull()].index]
-    df = df[df.loc[df.pitch_type.isnull()].index]
-    df = df[df[(df.pitch_type == 'None')
-    df = df[df.loc[(df.pitch_type == 'None') & (~df.pitch_type.isnull())].index]
-    df = df[df.loc[df.sz_bot.isnull()].index]
-    df = df[df.loc[df.sz_top.isnull()].index]
+    df = df[df.px.notnull() & df.pz.notnull()]
+    df = df[(df.pitch_type != 'None') & df.pitch_type.notnull()]
+    df = df[df.sz_bot.notnull() & df.sz_top.notnull()]
 
     return df
 
@@ -150,12 +145,12 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
 
     for c in calls_:
         f = df.loc[df.pitch_result == c]
-        ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=c, color=Colors[c], zorder=0)
+        ax.scatter(f.px, f.pz, alpha=.5, s=2*np.pi*dpi, label=c, color=Colors[c], zorder=0)
 
-        if show_pitch_number is True:
+        if show_pitch_number == True:
             for i in f.index:
                 if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
-                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
+                    ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number.astype(int),
                             color='white', fontsize='medium', weight='bold', horizontalalignment='center')
 
     ax.plot( [ll, ll], [bl, tl], color='white', linestyle='solid', lw=1 )
@@ -181,7 +176,7 @@ def plot_by_call(df, title=None, calls=None, legends=True, show_pitch_number=Fal
     ax.axis('off')
     ax.autoscale_view('tight')
 
-    if legends is True:
+    if legends == True:
         ax.legend(loc='lower center', ncol=2, fontsize='medium')
 
     return fig, ax
@@ -228,7 +223,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
         c = BallColors[p]
         ax.scatter(f.px, f.pz, alpha=.5, s=np.pi*dpi, label=p, color=c, zorder=0)
 
-        if show_pitch_number is True:
+        if show_pitch_number == True:
             for i in f.index:
                 if ((f.loc[i].px < rb ) & (f.loc[i].px > lb) & (f.loc[i].pz < tb) & (f.loc[i].pz > bb)):
                     ax.text(f.loc[i].px, f.loc[i].pz-0.05, f.loc[i].pitch_number,
@@ -257,7 +252,7 @@ def plot_by_pitch_type(df, title=None, pitch_types=None, legends=True, show_pitc
     ax.axis('off')
     ax.autoscale_view('tight')
 
-    if legends is True:
+    if legends == True:
         ax.legend(loc='lower center', ncol=2, fontsize='medium')
 
     return fig, ax
@@ -375,7 +370,7 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    if by_inch is True:
+    if by_inch == True:
         df = df.assign(px = df.px * 12, pz = df.pz * 12)
         lb = -18
         rb = +18
@@ -439,7 +434,7 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
         else:
             cmap='Reds'
 
-    if show_full is True:
+    if show_full == True:
         levels = np.asarray([0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1.])
         if color is not None:
             c = hex_to_rgb(color)
@@ -461,7 +456,7 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     ax.set_facecolor('#cccccc')
     plt.colorbar(cs, format=ticker.FuncFormatter(fmt), ax=ax)
 
-    if by_inch is True:
+    if by_inch == True:
         major_xtick_step = major_ytick_step = 6
         minor_xtick_step = minor_ytick_step = 1
     else:
@@ -471,7 +466,7 @@ def plot_heatmap(df, title=None, dpi=144, cmap=None, ax=None, show_full=False, c
     major_xticks = np.arange(lb, rb+major_xtick_step, major_xtick_step)
     minor_xticks = np.arange(lb, rb+minor_xtick_step, minor_xtick_step)
 
-    if by_inch is True:
+    if by_inch == True:
         major_yticks = np.arange(0, 60+major_ytick_step, major_ytick_step)
         minor_yticks = np.arange(0, 60+minor_ytick_step, minor_ytick_step)
     else:
@@ -515,7 +510,7 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
     if df.px.dtypes == np.object:
         df = clean_data(df)
 
-    if by_inch is True:
+    if by_inch == True:
         df = df.assign(px = df.px * 12, pz = df.pz * 12)
         lb = -18
         rb = +18
@@ -612,7 +607,7 @@ def plot_szone(df, title=None, dpi=144, show_area=False, ax=None, by_inch=True):
     area = np.sum(rg >= 0.5)
     print('S-Zone size: {} sq.inch'.format(area))
 
-    if show_area is True:
+    if show_area == True:
         ax.text( 0, (tb+bb)/2, '{} sq. inch'.format(str(area)), color='black',
                  fontsize=16, horizontalalignment='center' )
 
@@ -652,7 +647,7 @@ def release_point(df, title=None, pitcher=None, xlim=None, ylim=None, square=Tru
 
     ax.legend(loc=9, bbox_to_anchor=(0.5, -0.1), ncol=2)
 
-    if square is True:
+    if square == True:
         ax.axis('square')
         xmin, xmax = ax.get_xbound()
         ymin, ymax = ax.get_ybound()
@@ -726,7 +721,7 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
                                             & ozmask, 1, 0))
 
     if isinstance(pitcher, str):
-        if by_pitch is True:
+        if by_pitch == True:
             tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
                                  'swing': sub_df.groupby('pitch_type').sum().swing,
                                  'miss': sub_df.groupby('pitch_type').sum().miss,
@@ -751,7 +746,7 @@ def pitcher_plate_discipline(df, pitcher=None, by_pitch=False):
 
             tab = pd.DataFrame(data=d, index=[pitcher])
     else:
-        if by_pitch is True:
+        if by_pitch == True:
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['pitcher', 'pitch_type']).count().speed,
                                  'swing': sub_df.groupby(['pitcher', 'pitch_type']).sum().swing,
                                  'miss': sub_df.groupby(['pitcher', 'pitch_type']).sum().miss,
@@ -825,7 +820,7 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
 
 
     if isinstance(batter, str):
-        if by_pitch is True:
+        if by_pitch == True:
             tab =  pd.DataFrame({'raw_num': sub_df.groupby('pitch_type').count().speed,
                                  'swing': sub_df.groupby('pitch_type').sum().swing,
                                  'miss': sub_df.groupby('pitch_type').sum().miss,
@@ -858,7 +853,7 @@ def batter_plate_discipline(df, batter=None, by_pitch=False):
                          oz_con_p = (1 - tab.oz_miss / tab.oz_swing)*100,
                         )
     else:
-        if by_pitch is True:
+        if by_pitch == True:
             tab =  pd.DataFrame({'raw_num': sub_df.groupby(['batter', 'pitch_type']).count().speed,
                                  'swing': sub_df.groupby(['batter', 'pitch_type']).sum().swing,
                                  'miss': sub_df.groupby(['batter', 'pitch_type']).sum().miss,
@@ -1042,7 +1037,7 @@ def break_plot(df, player, mode=0, ax=None, span=.6, show_dots=False):
                     y = -t_part.pfx_z_raw.mean() * 2.54
                     s = t_part.shape[0]
 
-                    if color_added[p] is False:
+                    if color_added[p] == False:
                         dots_by_type.append(ax.scatter(x, y, s=dpi*2, c=BallColors[p]))
                         if p == '직구':
                             labels.append('포심')

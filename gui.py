@@ -50,7 +50,7 @@ def join_csvs(path, start_date, end_date):
                 if len(lines) < 2:
                     fp.close()
                     continue
-                if header_written is False:
+                if header_written == False:
                     yfile.write(lines[0])
                     header_written = True
                 for line in lines[1:]:
@@ -286,13 +286,13 @@ class Ui_Dialog(object):
 
                         if game_data_dfs[0] is None:
                             logfile.write(game_data_dfs[-1])
-                            if debug_mode is True:
+                            if debug_mode == True:
                                 print(game_data_dfs[-1])
                             assert False
                             self.noteLabel.setText(_translate("Dialog",
                                                    "ERROR: 로그 파일(log.txt)을 참조하세요."))
 
-                        if save_source is True:
+                        if save_source == True:
                             if not source_path.is_dir():
                                 try:
                                     source_path.mkdir()
@@ -314,13 +314,13 @@ class Ui_Dialog(object):
                             gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
                             parse = gs.parse_game(debug_mode)
                             gs.save_game(sp / gid[:4])
-                            if parse is True:
+                            if parse == True:
                                 self.done += 1
                             else:
                                 self.broken += 1
                         else:
                             self.broken += 1
-                    if join_csv is True:
+                    if join_csv == True:
                         join_csvs(sp, start_date, end_date)
 
                     end_time = time.time()
@@ -334,7 +334,7 @@ class Ui_Dialog(object):
                     logfile.write(f'Skipped games(already exists) : {self.skipped}\n')
                     logfile.write(f'Broken games(bad data) : {self.broken}\n')
                     logfile.write('====================================\n')
-                    if debug_mode is True:
+                    if debug_mode == True:
                         logfile.write(f'Elapsed {get_game_id_time:.2f} sec in get_game_ids\n')
                         logfile.write(f'Elapsed {(get_data_time):.2f} sec in get_game_data\n')
                         logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')

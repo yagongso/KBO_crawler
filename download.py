@@ -53,7 +53,7 @@ playoff_start = {
 def get_game_ids(start_date, end_date, playoff=False):
     """
     KBO 경기 ID를 가져온다.
-    
+
     Parameters
     -----------
     start_date, end_date : datetime.date
@@ -94,28 +94,46 @@ def get_game_ids(start_date, end_date, playoff=False):
         soup = BeautifulSoup(response.text, 'lxml')
         response.close()
 
-        buttons = soup.findAll('span',
-                               attrs={'class': 'td_btn'})
+        sch_tbs = soup.findAll('div', attrs={'class': 'sch_tb'})
+        sch_tb2s = soup.findAll('div', attrs={'class': 'sch_tb2'})
+        sch_tbs += sch_tb2s
 
-        for btn in buttons:
-            gid = btn.a['href'].split('gameId=')[1]
-            gid_date = datetime.date(int(gid[:4]),
-                                     int(gid[4:6]),
-                                     int(gid[6:8]))
-            if start_date <= gid_date <= end_date:
-                if playoff is False:
-                    if year_regular_start_date <= gid_date < year_playoff_start_date:
-                        game_ids.append(gid)
-                else:
-                    if year_regular_start_date <= gid_date < year_last_date:
-                        game_ids.append(gid)
+        for row in sch_tbs:
+            day_table = row.findAll('tr')
+            for game in day_table:
+                add_state = game.findAll('td', attrs={'class': 'add_state'})
+                tds = game.findAll('td')
+                if len(tds) < 4:
+                    continue
+                links = game.findAll('span',
+                                    attrs={'class': 'td_btn'})
+                date_td = game.findAll('span', attrs={'class': 'td_date'})
+                if len(date_td) > 0:
+                    date_text = date_td[0].text
+                if len(add_state) > 0:
+                    status = add_state[0].findAll('span')[-1].get('class')[0]
+                    if status == 'suspended':
+                        continue
+
+                for btn in links:
+                    gid = btn.a['href'].split('/')[2]
+                    gid_date = datetime.date(int(gid[:4]),
+                                             int(gid[4:6]),
+                                             int(gid[6:8]))
+                    if start_date <= gid_date <= end_date:
+                        if playoff == False:
+                            if year_regular_start_date <= gid_date < year_playoff_start_date:
+                                game_ids.append(gid)
+                        else:
+                            if year_regular_start_date <= gid_date < year_last_date:
+                                game_ids.append(gid)
     return game_ids
 
 
 def get_game_data(game_id):
     """
     KBO 경기 PBP 데이터를 가져온다.
-    
+
     Parameters
     -----------
     game_id : str
@@ -461,6 +479,218 @@ def get_game_data(game_id):
         return pitching_df, batting_df, relay_df
 
 
+def get_game_data_renewed(game_id):
+    nav_api_header = 'https://api-gw.sports.naver.com/schedule/games/'
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        #####################################
+        # 0. 게임 메타 데이터 가져오기      #
+        #####################################
+        game_req = requests.get(nav_api_header + game_id)
+        if game_req.status_code > 200:
+            game_req.close()
+            return [None, None, 'meta data request error\n']
+        game_req_result = game_req.json()
+        if game_req_result.get('code') > 200:
+            game_req.close()
+            return [None, None, 'meta data request error\n']
+        game_req.close()
+
+        game_meta_data = game_req_result.get('result').get('game')
+        stadium = game_meta_data.get('stadium')
+        homeTeamCode = game_meta_data.get('homeTeamCode')
+        homeTeamName = game_meta_data.get('homeTeamName')
+        awayTeamCode = game_meta_data.get('awayTeamCode')
+        awayTeamName = game_meta_data.get('awayTeamName')
+        max_inning = int(game_meta_data.get('currentInning')[0])
+
+        box_score_req = requests.get(f'{nav_api_header}{game_id}/record')
+        if box_score_req.status_code > 200:
+            box_score_req.close()
+            return [None, None, 'meta data(box score) request error\n']
+        box_score_req_result = box_score_req.json()
+        if box_score_req_result.get('code') > 200:
+            box_score_req.close()
+            return [None, None, 'meta data(box score) request error\n']
+        box_score_req.close()
+
+        box_score_data = box_score_req_result.get('result').get('recordData')
+        if len(box_score_data.get('etcRecords')) > 0:
+            referees = box_score_data.get('etcRecords')[-1].get('result').split(' ')
+        else:
+            print(game_id)
+            referees = ['']
+        away_batting_order = box_score_data.get('battersBoxscore').get('away')
+        home_batting_order = box_score_data.get('battersBoxscore').get('home')
+        away_pitchers = box_score_data.get('pitchersBoxscore').get('away')
+        home_pitchers = box_score_data.get('pitchersBoxscore').get('home')
+
+        #####################################
+        # 1. pitch by pitch 데이터 가져오기 #
+        #####################################
+        game_data_set = {}
+        game_data_set['pitchTextList'] = []
+        game_data_set['pitchTrackDataList'] = []
+
+        text_keys = ['seqno', 'text', 'type', 'stuff',
+                     'ptsPitchId', 'speed', 'playerChange']
+        pitch_keys = ['crossPlateX', 'topSz',
+                      'pitchId', 'vy0', 'vz0', 'vx0',
+                      'z0', 'ax', 'x0', 'ay', 'az',
+                      'bottomSz']
+        for inning in range(1, max_inning+1):
+            pbp_req = requests.get(f'{nav_api_header}{game_id}/relay?inning={inning}')
+            if pbp_req.status_code > 200:
+                pbp_req.close()
+                print([None, None, 'pbp relay data request error\n'])
+                assert False
+            pbp_req_result = pbp_req.json()
+            if pbp_req_result.get('code') > 200:
+                pbp_req.close()
+                print([None, None, 'pbp relay data request error\n'])
+                assert False
+            pbp_req.close()
+
+            pbp_data = pbp_req_result.get('result').get('textRelayData')
+
+            for textSetList in pbp_data.get('textRelays')[::-1]:
+                textRow = {}
+                pitchTrackerRow = {}
+
+                textSet = textSetList.get('textOptions')
+                textSetNo = textSetList.get('no')
+                for pitchTextData in textSet:
+                    textRow = {}
+                    textRow['textOrder'] = textSetNo
+                    for key in text_keys:
+                        if key == 'playerChange':
+                            if pitchTextData.get(key) is not None:
+                                for x in ['outPlayer', 'inPlayer', 'shiftPlayer']:
+                                    if x in pitchTextData.get(key).keys():
+                                        textRow[x] = pitchTextData.get(key).get(x).get('playerId')
+                        else:
+                            if key not in pitchTextData.keys():
+                                textRow[key] = None
+                            else:
+                                textRow[key] = pitchTextData.get(key)
+                    textRow['referee'] = referees[0]
+                    textRow['stadium'] = stadium
+                    game_data_set['pitchTextList'].append(textRow)
+
+                pitchTrackerSet = textSetList.get('ptsOptions')
+                for pitchTrackData in pitchTrackerSet:
+                    pitchTrackerRow = {}
+                    pitchTrackerRow['textOrder'] = textSetNo
+
+                    for key in pitch_keys:
+                        if key not in pitchTrackData.keys():
+                            pitchTrackerRow[key] = None
+                        else:
+                            pitchTrackerRow[key] = pitchTrackData.get(key)
+
+                    game_data_set['pitchTrackDataList'].append(pitchTrackData)
+
+        text_set_df = pd.DataFrame(game_data_set['pitchTextList'])
+        text_set_df = text_set_df.rename(index=str, columns={'ptsPitchId': 'pitchId'})
+        text_set_df.seqno = pd.to_numeric(text_set_df.seqno)
+
+        # 텍스트(중계) 데이터, 트래킹 데이터 취합
+        if len(game_data_set['pitchTrackDataList']) > 0:
+            pitch_data_df = pd.DataFrame(game_data_set['pitchTrackDataList'])
+            relay_df = pd.merge(text_set_df, pitch_data_df, how='outer').sort_values(['textOrder', 'seqno'])
+        else:
+            relay_df = text_set_df.sort_values(['textOrder', 'seqno'])
+
+        ########################################
+        # 2. 라인업 정리                       #
+        ########################################
+        # 라인업에 대한 기초 정보가 담겨 있음
+        # 경기 끝나고나서 최종 정보 -> 포지션은 마지막 상황
+        game_data_set['awayLineup'] = pbp_data.get('awayLineup')
+        game_data_set['homeLineup'] = pbp_data.get('homeLineup')
+
+        game_data_set['stadium'] = stadium
+
+        pos_dict = {'중': '중견수', '좌': '좌익수', '우': '우익수',
+            '유': '유격수', '포': '포수', '지': '지명타자',
+            '一': '1루수', '二': '2루수', '三': '3루수'}
+
+        home_players = []
+        away_players = []
+
+        for i in range(len(home_batting_order)):
+            player = home_batting_order[i]
+            name = player.get('name')
+            pos = player.get('pos')[0]
+            pcode = player.get('playerCode')
+            home_players.append({'name': name, 'pos': pos, 'pcode': pcode})
+
+        for i in range(len(away_batting_order)):
+            player = away_batting_order[i]
+            name = player.get('name')
+            pos = player.get('pos')[0]
+            pcode = player.get('playerCode')
+            away_players.append({'name': name, 'pos': pos, 'pcode': pcode})
+
+        ############################################
+        # 3. 메타 데이터에 있는 라인업 정보와 취합 #
+        ############################################
+        # 메타 데이터에는 경기 시작했을 때 포지션 정보가 있음
+        hit_columns = ['name', 'pcode', 'posName',
+                       'hitType', 'seqno', 'batOrder']
+        pit_columns = ['name', 'pcode', 'hitType', 'seqno']
+
+        away_lineup_meta_data = game_data_set.get('awayLineup')
+        away_batters = away_lineup_meta_data.get('batter')
+        away_pitchers = away_lineup_meta_data.get('pitcher')
+        away_lineup_df = pd.DataFrame(away_batters, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        away_pitcher_df = pd.DataFrame(away_pitchers, columns=pit_columns).sort_values('seqno')
+
+        home_lineup_meta_data = game_data_set.get('homeLineup')
+        home_batters = home_lineup_meta_data.get('batter')
+        home_pitchers = home_lineup_meta_data.get('pitcher')
+        home_lineup_df = pd.DataFrame(home_batters, columns=hit_columns).sort_values(['batOrder', 'seqno'])
+        home_pitcher_df = pd.DataFrame(home_pitchers, columns=pit_columns).sort_values('seqno')
+
+        away_lineup_df = away_lineup_df.assign(pcode = pd.to_numeric(away_lineup_df.pcode))
+        away_pitcher_df = away_pitcher_df.assign(pcode = pd.to_numeric(away_pitcher_df.pcode))
+        home_lineup_df = home_lineup_df.assign(pcode = pd.to_numeric(home_lineup_df.pcode))
+        home_pitcher_df = home_pitcher_df.assign(pcode = pd.to_numeric(home_pitcher_df.pcode))
+
+        ap = pd.DataFrame(away_players)
+        ap = ap.assign(pcode = pd.to_numeric(ap.pcode))
+
+        hp = pd.DataFrame(home_players)
+        hp = hp.assign(pcode = pd.to_numeric(hp.pcode))
+        away_lineup_df = pd.merge(away_lineup_df, ap[['pos', 'pcode']], on='pcode')
+        home_lineup_df = pd.merge(home_lineup_df, hp[['pos', 'pcode']], on='pcode')
+        # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
+        # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
+
+        away_lineup_df = away_lineup_df\
+                        .assign(posName = np.where(away_lineup_df.pos != '교',
+                                                   away_lineup_df.pos\
+                                                       .apply(lambda x: pos_dict.get(x)),
+                                                   away_lineup_df.posName))
+        home_lineup_df = home_lineup_df\
+                        .assign(posName = np.where(home_lineup_df.pos != '교',
+                                                   home_lineup_df.pos\
+                                                       .apply(lambda x: pos_dict.get(x)),
+                                                   home_lineup_df.posName))
+
+        away_lineup_df = away_lineup_df.assign(homeaway = 'a', team_name = awayTeamName)
+        home_lineup_df = home_lineup_df.assign(homeaway = 'h', team_name = homeTeamName)
+        away_pitcher_df = away_pitcher_df.assign(homeaway = 'a', team_name = awayTeamName)
+        home_pitcher_df = home_pitcher_df.assign(homeaway = 'h', team_name = homeTeamName)
+
+        batting_df = pd.concat([away_lineup_df, home_lineup_df])
+        pitching_df = pd.concat([away_pitcher_df, home_pitcher_df])
+        batting_df.pcode = pd.to_numeric(batting_df.pcode)
+        pitching_df.pcode = pd.to_numeric(pitching_df.pcode)
+    return pitching_df, batting_df, relay_df
+
+
 def download_pbp_files(start_date, end_date, playoff=False,
                        save_path=None, debug_mode=False,
                        save_source=False):
@@ -491,7 +721,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
     end_time = time.time()
     get_game_id_time = end_time - start_time
 
-    enc = 'cp949' if sys.platform is 'win32' else 'utf-8'
+    enc = 'cp949' if sys.platform == 'win32' else 'utf-8'
 
     now = datetime.datetime.now()
 
@@ -545,15 +775,16 @@ def download_pbp_files(start_date, end_date, playoff=False,
                 game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv')))
                 game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv')))
             else:
-                game_data_dfs = get_game_data(gid)
+                #game_data_dfs = get_game_data(gid)
+                game_data_dfs = get_game_data_renewed(gid)
 
             if game_data_dfs[0] is None:
                 logfile.write(game_data_dfs[-1])
-                if debug_mode is True:
+                if debug_mode == True:
                     print(game_data_dfs[-1])
                 exit(1)
 
-            if save_source is True:
+            if save_source == True:
                 if not source_path.is_dir():
                     try:
                         source_path.mkdir()
@@ -575,7 +806,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
                 gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
                 parse = gs.parse_game(debug_mode)
                 gs.save_game(save_path / gid[:4])
-                if parse is True:
+                if parse == True:
                     done += 1
                 else:
                     broken += 1
@@ -592,7 +823,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
         logfile.write(f'Skipped games(already exists) : {skipped}\n')
         logfile.write(f'Broken games(bad data) : {broken}\n')
         logfile.write('====================================\n')
-        if debug_mode is True:
+        if debug_mode == True:
             logfile.write(f'Elapsed {get_game_id_time:.2f} sec in get_game_ids\n')
             logfile.write(f'Elapsed {(get_data_time):.2f} sec in get_game_data\n')
             logfile.write(f'Elapsed {(parse_time):.2f} sec in parse_game\n')
@@ -600,7 +831,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
 
         if logfile.closed is not True:
             logfile.close()
-    except: 
+    except:
         if logfile.closed is not True:
             logfile.close()
         assert False

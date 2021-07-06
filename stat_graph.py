@@ -110,7 +110,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
     max_y = -10000
     a2 = a3 = a4 = a5 = None
 
-    if options[0] is True:
+    if options[0] == True:
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a1.plot(tab.index, rs[:, 0], label='AVG', color='k')
         else:
@@ -121,7 +121,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
         max_y = max(max_y, rs[:, 0].max())
         min_y = min(min_y, rs[:, 0].min())
 
-    if options[1] is True:
+    if options[1] == True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a2.plot(tab.index, rs[:, 1], label='OBP', color='blueviolet', linestyle=':', linewidth=2)
@@ -135,7 +135,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
         if min_y > rs[:, 1].min():
             min_y = rs[:, 1].min()
 
-    if options[2] is True:
+    if options[2] == True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a3.plot(tab.index, rs[:, 2], label='SLG', color='orangered', marker='o', markersize='2.5')
@@ -149,7 +149,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
         if min_y > rs[:, 2].min():
             min_y = rs[:, 2].min()
 
-    if options[3] is True:
+    if options[3] == True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a4.plot(tab.index, rs[:, 3], label='OPS', color='royalblue')
@@ -163,7 +163,7 @@ def graph_batting_result(df, batter, ma_term=0, options=[True, True, True, True,
         if min_y > rs[:, 3].min():
             min_y = rs[:, 3].min()
 
-    if options[4] is True:
+    if options[4] == True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a5.plot(tab.index, rs[:, 4], label='BABIP', color='gold', linestyle='--')
@@ -210,12 +210,12 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
     
     if df.px.dtypes == np.object:
         df.loc[:, 'px'] = pd.to_numeric(df.px, errors='coerce')
-    if df.isnull().any().px is False:
+    if df.isnull().any().px == False:
         df = df.drop(df.loc[df.px.isnull()].index)
 
     if df.pz.dtypes == np.object:
         df.loc[:, 'pz'] = pd.to_numeric(df.pz, errors='coerce')
-    if df.isnull().any().pz is False:
+    if df.isnull().any().pz == False:
         df = df.drop(df.loc[df.pz.isnull()].index)
         
     df = df.assign(swing=np.where(df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
@@ -316,7 +316,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
 
     #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
     
-    if options[0] is True:
+    if options[0] == True:
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a1.plot(tab.index, rs[:, 0], label='Swing%', color='k')
         else:
@@ -327,7 +327,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
         max_y = max(max_y, rs[:, 0].max())
         min_y = min(min_y, rs[:, 0].min())
     
-    if options[1] is True:
+    if options[1] == True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a2.plot(tab.index, rs[:, 1], label='Contact%', color='dimgrey', linestyle='--')
@@ -341,7 +341,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
         if min_y > rs[:, 1].min():
             min_y = rs[:, 1].min()
 
-    if options[2] is True:
+    if options[2] == True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a3.plot(tab.index, rs[:, 2], label='Z-Swing%', color='blue')
@@ -355,7 +355,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
         if min_y > rs[:, 2].min():
             min_y = rs[:, 2].min()
     
-    if options[3] is True:
+    if options[3] == True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a4.plot(tab.index, rs[:, 3], label='Z-Contact%', color='lightskyblue', linestyle='--')
@@ -369,7 +369,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
         if min_y > rs[:, 3].min():
             min_y = rs[:, 3].min()
     
-    if options[4] is True:
+    if options[4] == True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a5.plot(tab.index, rs[:, 4], label='O-Swing%', color='green')
@@ -383,7 +383,7 @@ def graph_batter_plate_discipline(df, batter, ma_term=0, options=[True, True, Tr
         if min_y > rs[:, 4].min():
             min_y = rs[:, 4].min()
     
-    if options[5] is True:
+    if options[5] == True:
         a6 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a6.plot(tab.index, rs[:, 5], label='O-Contact%', color='lime', linestyle='--')
@@ -537,7 +537,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
     max_y = -10000
     a2 = a3 = a4 = a5 = a6 = a7 = None
 
-    if options[0] is True:
+    if options[0] == True:
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a1.plot(tab.index, rs[:, 0], label='AVG', color='k')
         else:
@@ -548,7 +548,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         max_y = max(max_y, rs[:, 0].max())
         min_y = min(min_y, rs[:, 0].min())
 
-    if options[1] is True:
+    if options[1] == True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a2.plot(tab.index, rs[:, 1], label='OBP', color='blueviolet', linestyle=':', linewidth=2)
@@ -562,7 +562,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         if min_y > rs[:, 1].min():
             min_y = rs[:, 1].min()
 
-    if options[2] is True:
+    if options[2] == True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a3.plot(tab.index, rs[:, 2], label='SLG', color='orangered', marker='o', markersize='2.5')
@@ -576,7 +576,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         if min_y > rs[:, 2].min():
             min_y = rs[:, 2].min()
 
-    if options[3] is True:
+    if options[3] == True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a4.plot(tab.index, rs[:, 3], label='OPS', color='royalblue')
@@ -590,7 +590,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         if min_y > rs[:, 3].min():
             min_y = rs[:, 3].min()
 
-    if options[4] is True:
+    if options[4] == True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a5.plot(tab.index, rs[:, 4], label='BABIP', color='gold', linestyle='--')
@@ -604,7 +604,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         if min_y > rs[:, 4].min():
             min_y = rs[:, 4].min()
             
-    if options[5] is True:
+    if options[5] == True:
         a6 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a6.plot(tab.index, rs[:, 5], label='K%', color='green', linestyle='--')
@@ -618,7 +618,7 @@ def graph_pitching_result(df, pitcher, ma_term=0, options=[True, True, True, Tru
         if min_y > rs[:, 5].min():
             min_y = rs[:, 5].min()
             
-    if options[6] is True:
+    if options[6] == True:
         a7 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a7.plot(tab.index, rs[:, 6], label='BB%', color='lime', linestyle='--')
@@ -672,12 +672,12 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
     
     if df.px.dtypes == np.object:
         df.loc[:, 'px'] = pd.to_numeric(df.px, errors='coerce')
-    if df.isnull().any().px is False:
+    if df.isnull().any().px == False:
         df = df.drop(df.loc[df.px.isnull()].index)
 
     if df.pz.dtypes == np.object:
         df.loc[:, 'pz'] = pd.to_numeric(df.pz, errors='coerce')
-    if df.isnull().any().pz is False:
+    if df.isnull().any().pz == False:
         df = df.drop(df.loc[df.pz.isnull()].index)
         
     df = df.assign(swing=np.where(df.pitch_result.isin(['타격', '번트파울', '번트헛스윙', '헛스윙', '파울']), 1, 0))
@@ -779,7 +779,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
 
     #swing%, con%, izswing%, izcon%, ozswing%, ozcon%
     
-    if options[0] is True:
+    if options[0] == True:
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a1.plot(tab.index, rs[:, 0], label='Swing%', color='k')
         else:
@@ -790,7 +790,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
         max_y = max(max_y, rs[:, 0].max())
         min_y = min(min_y, rs[:, 0].min())
     
-    if options[1] is True:
+    if options[1] == True:
         a2 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a2.plot(tab.index, rs[:, 1], label='Contact%', color='dimgrey', linestyle='--')
@@ -804,7 +804,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
         if min_y > rs[:, 1].min():
             min_y = rs[:, 1].min()
 
-    if options[2] is True:
+    if options[2] == True:
         a3 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a3.plot(tab.index, rs[:, 2], label='Z-Swing%', color='blue')
@@ -818,7 +818,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
         if min_y > rs[:, 2].min():
             min_y = rs[:, 2].min()
     
-    if options[3] is True:
+    if options[3] == True:
         a4 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a4.plot(tab.index, rs[:, 3], label='Z-Contact%', color='lightskyblue', linestyle='--')
@@ -832,7 +832,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
         if min_y > rs[:, 3].min():
             min_y = rs[:, 3].min()
     
-    if options[4] is True:
+    if options[4] == True:
         a5 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a5.plot(tab.index, rs[:, 4], label='O-Swing%', color='green')
@@ -846,7 +846,7 @@ def graph_pitcher_plate_discipline(df, pitcher, ma_term=0, options=[True, True, 
         if min_y > rs[:, 4].min():
             min_y = rs[:, 4].min()
     
-    if options[5] is True:
+    if options[5] == True:
         a6 = a1.twinx()
         if (ma_term <= 1) or (ma_term >= len(tab.index)):
             a6.plot(tab.index, rs[:, 5], label='O-Contact%', color='lime', linestyle='--')

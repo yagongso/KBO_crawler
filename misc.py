@@ -557,7 +557,7 @@ def calc_framing_cell(df, rv_by_count=False):
 
     # Run Value
     rv = None
-    if rv_by_count is False:
+    if rv_by_count == False:
         b, s = get_rv_of_ball_strike(df)
         rv = b - s
     else:
@@ -570,7 +570,7 @@ def calc_framing_cell(df, rv_by_count=False):
     logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
 
     # Run Value
-    if rv_by_count is False:
+    if rv_by_count == False:
         logs = logs.assign(exrv = logs.excall * rv)
         logs = logs.assign(exrv_prob = np.where(logs.excall==1, (1-logs.proba)*rv,
                                                 np.where(logs.excall==-1, -logs.proba*rv, 0)))
@@ -672,7 +672,7 @@ def calc_framing_gam(df, rv_by_count=False):
 
     # Run Value
     rv = None
-    if rv_by_count is False:
+    if rv_by_count == False:
         b, s = get_rv_of_ball_strike(df)
         rv = b - s
     else:
@@ -685,7 +685,7 @@ def calc_framing_gam(df, rv_by_count=False):
     logs = logs.assign(exball=np.where(logs.excall==-1, 1, 0))
 
     # Run Value
-    if rv_by_count is False:
+    if rv_by_count == False:
         logs = logs.assign(exrv = logs.excall * rv)
         logs = logs.assign(exrv_prob = np.where(logs.excall==1, (1-logs.proba)*rv,
                                                 np.where(logs.excall==-1, -logs.proba*rv, 0)))
@@ -930,7 +930,7 @@ def frun_style(frun_df, threshold=500, shadow_df=None, rv=None, shadow_adj=True)
 
     columns = ['fRun', 'fRun/2000']
     if (shadow_df is not None) & (rv is not None):
-        if shadow_adj is True:
+        if shadow_adj == True:
             t = t.join(shadow2(shadow_df, rv))
             t = t[['이름', '판정 횟수', 'fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']]
             columns = ['fRun', 'fRun/2000', 'fRun(shadow)', 'fRun(shadow)/2000']
@@ -952,7 +952,7 @@ def frun_style(frun_df, threshold=500, shadow_df=None, rv=None, shadow_adj=True)
     s = plot_table_color_scale(t, columns)
 
     if (shadow_df is not None) & (rv is not None):
-        if shadow_adj is True:
+        if shadow_adj == True:
             s = s.hide_index().format({'fRun': "{:.1f}", 'fRun/2000': "{:.1f}",
                                        'fRun(shadow)': "{:.1f}", 'fRun(shadow)/2000': "{:.1f}"}).set_table_styles(styles)
         else:
