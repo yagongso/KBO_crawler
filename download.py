@@ -503,7 +503,7 @@ def get_game_data_renewed(game_id):
         homeTeamName = game_meta_data.get('homeTeamName')
         awayTeamCode = game_meta_data.get('awayTeamCode')
         awayTeamName = game_meta_data.get('awayTeamName')
-        max_inning = int(game_meta_data.get('currentInning')[0])
+        max_inning = int(game_meta_data.get('currentInning').split('회')[0])
 
         box_score_req = requests.get(f'{nav_api_header}{game_id}/record')
         if box_score_req.status_code > 200:
