@@ -236,6 +236,10 @@ class game_status:
         self.referee = rdf.referee.unique()[0]
         self.away_alias = pdf.loc[pdf.homeaway == 'a'].team_name.unique()[0]
         self.home_alias = pdf.loc[pdf.homeaway == 'h'].team_name.unique()[0]
+        if 'pCode' in pdf.columns:
+            pdf = pdf.rename(index=str, columns={'pCode': 'pcode'})
+        if 'pCode' in bdf.columns:
+            bdf = bdf.rename(index=str, columns={'pCode': 'pcode'})
 
         ########################
         # 라인업 & 필드 채우기 #

@@ -663,10 +663,20 @@ def get_game_data_renewed(game_id):
 
         hp = pd.DataFrame(home_players)
         hp = hp.assign(pcode = pd.to_numeric(hp.pcode))
-        away_lineup_df = pd.merge(away_lineup_df, ap[['pos', 'pcode']], on='pcode')
-        home_lineup_df = pd.merge(home_lineup_df, hp[['pos', 'pcode']], on='pcode')
+        away_lineup_df = pd.merge(away_lineup_df, ap, on='pcode', how='outer')
+        home_lineup_df = pd.merge(home_lineup_df, hp, on='pcode', how='outer')
+
         # 선발 출장한 경우, 선수의 포지션을 경기 시작할 때 포지션으로 수정
         # (pitch by pitch 데이터에서 가져온 정보는 경기 종료 시의 포지션임)
+        away_lineup_df = away_lineup_df.assign(name = np.where(away_lineup_df.name_x.isnull(),
+                                                               away_lineup_df.name_y,
+                                                               away_lineup_df.name_x))
+        home_lineup_df = home_lineup_df.assign(name = np.where(home_lineup_df.name_x.isnull(),
+                                                               home_lineup_df.name_y,
+                                                               home_lineup_df.name_x))
+        lineup_df_columns = ['name', 'pcode', 'posName', 'hitType', 'seqno', 'batOrder', 'pos']
+        away_lineup_df = away_lineup_df[lineup_df_columns]
+        home_lineup_df = home_lineup_df[lineup_df_columns]
 
         away_lineup_df = away_lineup_df\
                         .assign(posName = np.where(away_lineup_df.pos != '교',
