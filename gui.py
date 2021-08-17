@@ -10,7 +10,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import traceback, sys, pathlib, datetime, time
 import pandas as pd
-from download import get_game_ids, get_game_data
+from download import get_game_ids, get_game_data_renewed
 from game_parse import game_status, header_row
 
 def getTracebackStr():
@@ -282,15 +282,15 @@ class Ui_Dialog(object):
                             game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv')))
                             game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv')))
                         else:
-                            game_data_dfs = get_game_data(gid)
+                            game_data_dfs = get_game_data_renewed(gid)
 
                         if game_data_dfs[0] is None:
                             logfile.write(game_data_dfs[-1])
                             if debug_mode == True:
                                 print(game_data_dfs[-1])
-                            assert False
                             self.noteLabel.setText(_translate("Dialog",
                                                    "ERROR: 로그 파일(log.txt)을 참조하세요."))
+                            assert False
 
                         if save_source == True:
                             if not source_path.is_dir():
