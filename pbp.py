@@ -74,7 +74,7 @@ parser.add_argument('-t', '--to',
                     help="Game Date >= YYYYMMDD(ex:20201231); "
                          "default: YYYY1231")
 
-parser.add_argument('-s', '--savedir',
+parser.add_argument('-d', '--savedir',
                     type=str,
                     dest='save_path',
                     metavar='SAVE_FILE_PATH',
@@ -96,7 +96,7 @@ parser.add_argument('-j', '--join',
                     dest='join_csv',
                     help='join output files with same year')
 
-parser.add_argument('--save-source',
+parser.add_argument('-s', '--save-source',
                     action='store_true',
                     dest='save_source',
                     help='save source data too')

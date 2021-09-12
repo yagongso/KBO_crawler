@@ -117,9 +117,12 @@ def get_game_ids(start_date, end_date, playoff=False):
 
                 for btn in links:
                     gid = btn.a['href'].split('/')[2]
-                    gid_date = datetime.date(int(gid[:4]),
-                                             int(gid[4:6]),
-                                             int(gid[6:8]))
+                    try:
+                        gid_date = datetime.date(int(gid[:4]),
+                                                 int(gid[4:6]),
+                                                 int(gid[6:8]))
+                    except:
+                        continue
                     if start_date <= gid_date <= end_date:
                         if playoff == False:
                             if year_regular_start_date <= gid_date < year_playoff_start_date:
@@ -503,7 +506,10 @@ def get_game_data_renewed(game_id):
         homeTeamName = game_meta_data.get('homeTeamName')
         awayTeamCode = game_meta_data.get('awayTeamCode')
         awayTeamName = game_meta_data.get('awayTeamName')
-        max_inning = int(game_meta_data.get('currentInning').split('회')[0])
+        if game_meta_data.get('currentInning') is not None:
+            max_inning = int(game_meta_data.get('currentInning').split('회')[0])
+        else:
+            max_inning = int(game_meta_data.get('statusInfo').split('회')[0])
 
         box_score_req = requests.get(f'{nav_api_header}{game_id}/record')
         if box_score_req.status_code > 200:
@@ -746,6 +752,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
     done = 0
     start_time = time.time()
     get_data_time = 0
+    gid = None
 
     years = list(set([x[:4] for x in game_ids]))
 
@@ -781,11 +788,10 @@ def download_pbp_files(start_date, end_date, playoff=False,
                 (source_path / f'{gid}_batting.csv').exists() &\
                 (source_path / f'{gid}_relay.csv').exists():
                 game_data_dfs = []
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv')))
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv')))
-                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv')))
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_pitching.csv'), encoding=enc))
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_batting.csv'), encoding=enc))
+                game_data_dfs.append(pd.read_csv(str(source_path / f'{gid}_relay.csv'), encoding=enc))
             else:
-                #game_data_dfs = get_game_data(gid)
                 game_data_dfs = get_game_data_renewed(gid)
 
             if game_data_dfs[0] is None:
@@ -804,11 +810,14 @@ def download_pbp_files(start_date, end_date, playoff=False,
                         logfile.write(f'source files will be saved in {gid[:4]} instead.')
 
                 if not (source_path / f'{gid}_pitching.csv').exists():
-                    game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'), index=False, encoding=enc)
+                    game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'),
+                                            index=False, encoding=enc, errors='replace')
                 if not (source_path / f'{gid}_batting.csv').exists():
-                    game_data_dfs[1].to_csv(str(source_path / f'{gid}_batting.csv'), index=False, encoding=enc)
+                    game_data_dfs[1].to_csv(str(source_path / f'{gid}_batting.csv'),
+                                            index=False, encoding=enc, errors='replace')
                 if not (source_path / f'{gid}_relay.csv').exists():
-                    game_data_dfs[2].to_csv(str(source_path / f'{gid}_relay.csv'), index=False, encoding=enc)
+                    game_data_dfs[2].to_csv(str(source_path / f'{gid}_relay.csv'),
+                                            index=False, encoding=enc, errors='replace')
 
             get_data_time += time.time() - ptime
             if game_data_dfs is not None:
@@ -842,6 +851,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
         if logfile.closed is not True:
             logfile.close()
     except:
+        logfile.write(f'=== gameID : {gid}\n')
         if logfile.closed is not True:
             logfile.close()
         assert False
