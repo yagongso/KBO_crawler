@@ -118,7 +118,10 @@ def get_game_ids(start_date, end_date, playoff=False):
                 for btn in links:
                     gid = btn.a['href'].split('/')[2]
                     try:
-                        gid_date = datetime.date(int(gid[:4]),
+                        gid_year = int(gid[:4])
+                        if gid_year > 3000:
+                            gid_year = int(gid[-4:])
+                        gid_date = datetime.date(gid_year,
                                                  int(gid[4:6]),
                                                  int(gid[6:8]))
                     except:
@@ -772,18 +775,21 @@ def download_pbp_files(start_date, end_date, playoff=False,
 
         for gid in tqdm(game_ids):
             now = datetime.datetime.now().date()
-            gid_to_date = datetime.date(int(gid[:4]),
+            gid_year = int(gid[:4])
+            if gid_year > 3000:
+                gid_year = int(gid[-4:])
+            gid_to_date = datetime.date(gid_year,
                                         int(gid[4:6]),
                                         int(gid[6:8]))
             if gid_to_date > now:
                 continue
 
-            if (save_path / gid[:4] / f'{gid}.csv').exists():
+            if (save_path / str(gid_year) / f'{gid}.csv').exists():
                 skipped += 1
                 continue
 
             ptime = time.time()
-            source_path = save_path / gid[:4] / 'source'
+            source_path = save_path / str(gid_year) / 'source'
             if (source_path / f'{gid}_pitching.csv').exists() &\
                 (source_path / f'{gid}_batting.csv').exists() &\
                 (source_path / f'{gid}_relay.csv').exists():
@@ -805,9 +811,9 @@ def download_pbp_files(start_date, end_date, playoff=False,
                     try:
                         source_path.mkdir()
                     except FileExistsError:
-                        source_path = save_path / gid[:4]
-                        logfile.write(f'NOTE: {gid[:4]}/source exists but not a directory.')
-                        logfile.write(f'source files will be saved in {gid[:4]} instead.')
+                        source_path = save_path / str(gid_year)
+                        logfile.write(f'NOTE: {gid_year}/source exists but not a directory.')
+                        logfile.write(f'source files will be saved in {gid_year} instead.')
 
                 if not (source_path / f'{gid}_pitching.csv').exists():
                     game_data_dfs[0].to_csv(str(source_path / f'{gid}_pitching.csv'),
@@ -824,7 +830,7 @@ def download_pbp_files(start_date, end_date, playoff=False,
                 gs = game_status()
                 gs.load(gid, game_data_dfs[0], game_data_dfs[1], game_data_dfs[2], log_file=logfile)
                 parse = gs.parse_game(debug_mode)
-                gs.save_game(save_path / gid[:4])
+                gs.save_game(save_path / str(gid_year))
                 if parse == True:
                     done += 1
                 else:
